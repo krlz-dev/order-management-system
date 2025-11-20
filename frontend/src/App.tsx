@@ -1,72 +1,74 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Header } from '@/components/layout/Header'
+import { Sidebar } from '@/components/layout/Sidebar'
 import { useAppStore } from '@/store/useAppStore'
-import { apiService } from '@/services/api'
+import { 
+  Dashboard, 
+  Orders, 
+  Products, 
+  Customers, 
+  Settings 
+} from '@/pages'
 
 function App() {
-  const { 
-    pingResponse, 
-    isLoading, 
-    error, 
-    setPingResponse, 
-    setLoading, 
-    setError 
-  } = useAppStore()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { currentPage } = useAppStore()
 
-  const handlePing = async () => {
-    setLoading(true)
-    setError(null)
-    
-    try {
-      const response = await apiService.ping()
-      
-      if (response.success && response.data) {
-        setPingResponse(response.data.message)
-      } else {
-        setError(response.error || 'Failed to ping server')
-      }
-    } catch (err) {
-      setError('Network error occurred')
-    } finally {
-      setLoading(false)
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard />
+      case 'orders':
+        return <Orders />
+      case 'products':
+        return <Products />
+      case 'customers':
+        return <Customers />
+      case 'settings':
+        return <Settings />
+      case 'shipping':
+      case 'payments':
+      case 'analytics':
+        return (
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center py-16">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {currentPage.charAt(0).toUpperCase() + currentPage.slice(1)}
+              </h2>
+              <p className="text-gray-600">This page is coming soon.</p>
+            </div>
+          </div>
+        )
+      default:
+        return <Dashboard />
     }
   }
 
+  const getPageTitle = () => {
+    return currentPage.charAt(0).toUpperCase() + currentPage.slice(1)
+  }
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center">Order Management System</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <Button 
-              onClick={handlePing} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? 'Pinging...' : 'Ping Server'}
-            </Button>
-          </div>
-          
-          {error && (
-            <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm">
-              Error: {error}
-            </div>
-          )}
-          
-          {pingResponse && (
-            <div className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 p-3 rounded-md text-sm">
-              Server Response: {pingResponse}
-            </div>
-          )}
-          
-          <div className="text-center text-sm text-muted-foreground">
-            Test the connection to the Spring Boot backend
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onClose={() => setSidebarOpen(false)} 
+      />
+      
+      {/* Main Content */}
+      <div className="lg:ml-64 flex flex-col min-h-screen">
+        {/* Header */}
+        <Header 
+          onMenuClick={() => setSidebarOpen(true)}
+          title={getPageTitle()}
+        />
+        
+        {/* Page Content */}
+        <main className="flex-1 p-4 lg:p-6">
+          {renderCurrentPage()}
+        </main>
+      </div>
     </div>
   )
 }
