@@ -1,0 +1,12 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "./mvnw spring-boot:run",
+    "build": "./mvnw clean compile",
+    "test": "./mvnw test",
+    "clean": "./mvnw clean",
+    "package": "./mvnw package"
+  }
+}

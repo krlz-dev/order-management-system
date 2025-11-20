@@ -1,0 +1,48 @@
+{
+  "name": "order-management-system",
+  "version": "1.0.0",
+  "description": "Full-stack order management system with Java backend and React frontend",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "test:ci": "turbo test -- --ci --coverage --watchAll=false",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "format:check": "turbo format:check",
+    "clean": "turbo clean && rm -rf node_modules",
+    "backend:dev": "cd backend && ./mvnw spring-boot:run",
+    "frontend:dev": "cd frontend && npm run dev",
+    "backend:test": "cd backend && ./mvnw test",
+    "frontend:test": "cd frontend && npm test"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "@changesets/cli": "^2.27.0",
+    "prettier": "^3.0.0"
+  },
+  "workspaces": [
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/order-management-system.git"
+  },
+  "keywords": [
+    "order-management",
+    "fullstack",
+    "java",
+    "spring-boot",
+    "react",
+    "typescript",
+    "rest-api"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "packageManager": "npm@10.0.0"
+}

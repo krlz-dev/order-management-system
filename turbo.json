@@ -1,0 +1,52 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**",
+        "build/**",
+        "target/**"
+      ]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [
+        "coverage/**",
+        "test-results/**",
+        "target/surefire-reports/**"
+      ]
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".eslintrc*", "*.config.js"]
+    },
+    "format": {
+      "inputs": ["$TURBO_DEFAULT$", ".prettierrc*", "*.config.js"],
+      "outputs": []
+    },
+    "format:check": {
+      "inputs": ["$TURBO_DEFAULT$", ".prettierrc*", "*.config.js"],
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false,
+      "inputs": [],
+      "outputs": []
+    }
+  },
+  "globalDependencies": [
+    "**/.env*",
+    "tsconfig.json",
+    "package.json"
+  ]
+}
