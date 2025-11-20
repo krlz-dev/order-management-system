@@ -112,9 +112,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                 <Users className="h-5 w-5" />
               </div>
-              <div>
-                <p className="text-sm font-medium">Admin User</p>
-                <p className="text-xs text-white/70">admin@orderflow.com</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {useAppStore.getState().user?.name || 'User'}
+                </p>
+                <p className="text-xs text-white/70 truncate">
+                  {useAppStore.getState().user?.email || 'user@example.com'}
+                </p>
               </div>
             </div>
           </div>

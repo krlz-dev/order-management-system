@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
-import { Menu, Bell, User, Search } from 'lucide-react'
+import { useAppStore } from '@/store/useAppStore'
+import { Menu, Bell, User, Search, LogOut } from 'lucide-react'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -7,6 +8,12 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick, title }: HeaderProps) {
+  const { user, logout } = useAppStore()
+
+  const handleLogout = () => {
+    logout()
+  }
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-4">
@@ -36,8 +43,21 @@ export function Header({ onMenuClick, title }: HeaderProps) {
           <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
         </Button>
         
-        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-          <User className="h-5 w-5" />
+        {user && (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg">
+            <User className="h-4 w-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">{user.name}</span>
+          </div>
+        )}
+        
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={handleLogout}
+          className="hover:bg-red-50 hover:text-red-600"
+          title="Logout"
+        >
+          <LogOut className="h-5 w-5" />
         </Button>
       </div>
     </header>

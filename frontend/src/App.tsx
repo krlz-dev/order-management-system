@@ -7,12 +7,18 @@ import {
   Orders, 
   Products, 
   Customers, 
-  Settings 
+  Settings,
+  Login 
 } from '@/pages'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { currentPage } = useAppStore()
+  const { currentPage, isAuthenticated } = useAppStore()
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return <Login />
+  }
 
   const renderCurrentPage = () => {
     switch (currentPage) {
