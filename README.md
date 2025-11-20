@@ -1,261 +1,305 @@
 # Order Management System
 
-A full-stack order management system built with Java Spring Boot backend and React.js frontend, developed as part of a Senior Full-Stack Developer coding task.
+A full-stack order management application built with modern technologies, featuring a React.js frontend and Java backend with clean architecture principles.
 
-## 🏗️ Project Architecture
+## 🏗️ Architecture Overview
 
-This project implements a clean layered architecture following Domain-Driven Design (DDD) principles with clear separation of concerns:
+This application follows a **Hexagonal Architecture** pattern with clean separation of concerns:
 
 ```
-order-management-system/
-├── backend/                 # Java Spring Boot API
-│   ├── src/main/java/
-│   │   ├── domain/         # Domain entities, value objects
-│   │   ├── application/    # Use cases, services
-│   │   ├── infrastructure/ # Database, external services
-│   │   └── presentation/   # REST controllers, DTOs
-│   └── src/test/java/      # Unit and integration tests
-├── frontend/               # React.js application
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/         # Page-level components
-│   │   ├── services/      # API communication
-│   │   ├── hooks/         # Custom React hooks
-│   │   └── types/         # TypeScript type definitions
-│   └── public/
-└── .github/workflows/      # CI/CD configuration
+┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │    Backend      │
+│   (React.js)    │◄──►│   (Java 21)     │
+│                 │    │                 │
+│ ┌─────────────┐ │    │ ┌─────────────┐ │
+│ │ Components  │ │    │ │   REST API  │ │
+│ │   Pages     │ │    │ │  (Spring)   │ │
+│ │   Zustand   │ │    │ └─────────────┘ │
+│ └─────────────┘ │    │ ┌─────────────┐ │
+│                 │    │ │  Business   │ │
+│                 │    │ │   Logic     │ │
+│                 │    │ └─────────────┘ │
+│                 │    │ ┌─────────────┐ │
+│                 │    │ │ Data Layer  │ │
+│                 │    │ │ (In-Memory) │ │
+│                 │    │ └─────────────┘ │
+└─────────────────┘    └─────────────────┘
 ```
-
-## 📋 Requirements Implementation
-
-### Product Management
-- ✅ Create, update, delete, and list products
-- ✅ Product attributes: id (UUID), name, price, stock
-- ✅ Input validation and error handling
-
-### Order Management
-- ✅ Orders contain multiple products with quantities
-- ✅ Server-side total price calculation
-- ✅ List orders with detailed views
-- ✅ Order status tracking
-
-### User Management (Simplified)
-- ✅ Static demo users for testing
-- ✅ User context for orders
 
 ## 🛠️ Technology Stack
 
-### Backend
-- **Framework**: Spring Boot 3.x
-- **Language**: Java 17+
-- **Architecture**: Layered (Onion/Hexagonal inspired)
-- **Database**: H2 (in-memory) / SQLite for persistence
-- **Documentation**: OpenAPI/Swagger UI
-- **Testing**: JUnit 5, Mockito
-- **Build Tool**: Maven
-
 ### Frontend
-- **Framework**: React 18+ with TypeScript
-- **State Management**: React Context API / Redux Toolkit
-- **HTTP Client**: Axios
-- **UI Components**: Custom components with CSS Modules
-- **Testing**: Jest, React Testing Library
-- **Build Tool**: Vite
+- **React.js 18+** with functional components and hooks
+- **Zustand** for state management
+- **TypeScript** for type safety
+- **Vite** for fast development and build
+- **Axios** for HTTP client communication
+- **React Router** for navigation
+- **Tailwind CSS** for styling
 
-### DevOps & Tooling
-- **Monorepo Management**: NX or Turborepo
-- **CI/CD**: GitHub Actions
-- **Code Quality**: ESLint, Prettier, SonarQube
-- **Package Manager**: npm/yarn
+### Backend
+- **Java 21** (managed via SDKMAN)
+- **Spring Boot 3.x** with modern Java features
+- **Spring Web** for REST API
+- **Spring Data JPA** for data persistence
+- **H2 Database** for in-memory storage
+- **OpenAPI 3** with Swagger UI for API documentation
+- **Maven** for dependency management
 
-## 🚀 Quick Start
+### Development Tools
+- **SDKMAN** for Java version management
+- **Node.js 18+** and **npm/yarn** for frontend tooling
+- **Git** for version control
+
+## 📋 Features
+
+### Product Management
+- ✅ Create, read, update, delete products
+- ✅ Product attributes: ID (UUID), name, price, stock
+- ✅ Input validation and error handling
+
+### Order Management
+- ✅ Create orders with multiple products
+- ✅ Automatic total price calculation (server-side)
+- ✅ Order listing and detailed views
+- ✅ Stock validation during order creation
+
+### User Management (Simplified)
+- ✅ Fixed demo users for testing
+- ✅ No authentication required per specifications
+
+## 🚀 Getting Started
 
 ### Prerequisites
-- Java 17+
-- Node.js 16+
-- npm or yarn
+
+1. **Java 21** (install via SDKMAN):
+   ```bash
+   # Install SDKMAN if not already installed
+   curl -s "https://get.sdkman.io" | bash
+   
+   # Install and use Java 21
+   sdk install java 21.0.1-oracle
+   sdk use java 21.0.1-oracle
+   ```
+
+2. **Node.js 18+**:
+   ```bash
+   # Check version
+   node --version
+   npm --version
+   ```
 
 ### Backend Setup
-```bash
-cd backend
-./mvnw spring-boot:run
-# API available at http://localhost:8080
-# Swagger UI at http://localhost:8080/swagger-ui.html
-```
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Install dependencies and run:
+   ```bash
+   ./mvnw clean install
+   ./mvnw spring-boot:run
+   ```
+
+3. The backend will be available at: `http://localhost:8080`
+
+4. API documentation: `http://localhost:8080/swagger-ui.html`
 
 ### Frontend Setup
-```bash
-cd frontend
-npm install
-npm start
-# Application available at http://localhost:3000
-```
 
-### Full Stack with Turborepo/NX
-```bash
-# Install dependencies for both projects
-npm install
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
 
-# Run both backend and frontend concurrently
-npm run dev
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-# Run tests for all projects
-npm run test
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
-# Build all projects
-npm run build
-```
+4. The frontend will be available at: `http://localhost:5173`
 
-## 📊 API Documentation
+## 📡 API Endpoints
 
-The REST API follows RESTful principles with proper HTTP status codes:
-
-### Products API
-- `GET /api/products` - List all products (with pagination)
+### Products
+- `GET /api/products` - List all products
 - `GET /api/products/{id}` - Get product by ID
 - `POST /api/products` - Create new product
 - `PUT /api/products/{id}` - Update product
 - `DELETE /api/products/{id}` - Delete product
 
-### Orders API
+### Orders
 - `GET /api/orders` - List all orders
-- `GET /api/orders/{id}` - Get order details
+- `GET /api/orders/{id}` - Get order by ID
 - `POST /api/orders` - Create new order
-- `PUT /api/orders/{id}/status` - Update order status
 
-### Users API (Simplified)
-- `GET /api/users` - List demo users
-- `GET /api/users/{id}` - Get user details
+### Sample API Usage
 
-Full API documentation available at `/swagger-ui.html` when running the backend.
+#### Create Product
+```bash
+curl -X POST http://localhost:8080/api/products \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Laptop",
+    "price": 999.99,
+    "stock": 10
+  }'
+```
 
-## 🏛️ Architecture Decisions
+#### Create Order
+```bash
+curl -X POST http://localhost:8080/api/orders \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user123",
+    "items": [
+      {
+        "productId": "product-uuid",
+        "quantity": 2
+      }
+    ]
+  }'
+```
 
-### Backend Architecture
-- **Layered Architecture**: Clear separation between domain, application, and infrastructure layers
-- **Dependency Injection**: Spring's IoC container for loose coupling
-- **DTOs**: Separate data transfer objects for API contracts
-- **Repository Pattern**: Abstraction over data access layer
-- **Service Layer**: Business logic encapsulation
+## 🗂️ Project Structure
 
-### Frontend Architecture
-- **Component-Based**: Modular, reusable React components
-- **Feature-Based Structure**: Organized by business features
-- **Custom Hooks**: Reusable stateful logic
-- **Type Safety**: Full TypeScript implementation
-- **API Layer**: Centralized HTTP client configuration
+```
+.
+├── README.md
+├── frontend/
+│   ├── src/
+│   │   ├── components/        # Reusable UI components
+│   │   ├── pages/            # Page components
+│   │   ├── stores/           # Zustand stores
+│   │   ├── services/         # API service layer
+│   │   ├── types/            # TypeScript type definitions
+│   │   └── utils/            # Utility functions
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.ts
+└── backend/
+    ├── src/
+    │   ├── main/
+    │   │   ├── java/
+    │   │   │   └── com/inform/orders/
+    │   │   │       ├── api/          # REST controllers
+    │   │   │       ├── application/  # Business logic/services
+    │   │   │       ├── domain/       # Domain entities and repositories
+    │   │   │       └── infrastructure/ # Data access implementation
+    │   │   └── resources/
+    │   └── test/
+    ├── pom.xml
+    └── target/
+```
 
-### Design Patterns Used
-- **Repository Pattern**: Data access abstraction
-- **Strategy Pattern**: Different calculation strategies
-- **Factory Pattern**: Entity creation
-- **Observer Pattern**: Event handling
-- **MVC Pattern**: Clear separation of concerns
+## 🔄 State Management
 
-## 🤖 AI Usage Documentation
+### Frontend (Zustand)
+The application uses Zustand for efficient state management:
 
-### AI Tools Utilized
-This project was developed with assistance from AI coding agents, specifically:
+- **ProductStore**: Manages product CRUD operations
+- **OrderStore**: Handles order creation and listing
+- **UIStore**: Controls loading states and notifications
 
-- **Claude/ChatGPT**: Architecture design, code generation, documentation
-- **GitHub Copilot**: Code completion and boilerplate generation
-- **Cursor**: Refactoring and code optimization
+### Backend (Spring Boot)
+Clean architecture with:
 
-### AI Assistance Areas
-1. **Architecture Design**: Initial project structure and layer separation
-2. **Boilerplate Code**: Entity classes, repository interfaces, basic CRUD operations
-3. **Test Case Generation**: Unit test templates and test data creation
-4. **API Documentation**: OpenAPI specification generation
-5. **Frontend Components**: React component structure and TypeScript types
-6. **Code Review**: Identifying potential improvements and best practices
+- **Controllers**: Handle HTTP requests/responses
+- **Services**: Business logic implementation
+- **Repositories**: Data access abstraction
+- **Entities**: Domain models
 
-### Manual Refinements
-- **Business Logic**: Core domain rules implemented manually
-- **Error Handling**: Custom exception handling and validation logic
-- **Performance Optimization**: Database queries and frontend rendering optimization
-- **Security**: Authentication/authorization logic (if implemented)
-- **Integration**: Manual testing and bug fixes
+## 🧪 Testing
 
-### AI Tool Assessment
-**Strengths:**
-- Excellent for generating boilerplate and repetitive code
-- Helpful for architecture suggestions and best practices
-- Good at creating comprehensive test suites
-- Useful for documentation generation
+### Backend
+```bash
+cd backend
+./mvnw test
+```
 
-**Limitations:**
-- Required manual review for business-specific logic
-- Needed adjustments for project-specific requirements
-- Generated code sometimes lacked context-specific optimizations
-- Required human oversight for security-critical components
+### Frontend
+```bash
+cd frontend
+npm test
+# or
+yarn test
+```
 
-## 🧪 Testing Strategy
+## 🔧 Development Commands
 
-### Backend Testing
-- **Unit Tests**: Domain logic, services, repositories
-- **Integration Tests**: API endpoints, database operations
-- **Test Coverage**: Minimum 80% code coverage
-- **Test Data**: Factory pattern for test object creation
+### Backend
+- `./mvnw clean` - Clean build artifacts
+- `./mvnw compile` - Compile source code
+- `./mvnw test` - Run unit tests
+- `./mvnw spring-boot:run` - Start development server
 
-### Frontend Testing
-- **Component Tests**: Individual component behavior
-- **Integration Tests**: API communication, user flows
-- **E2E Tests**: Critical user journeys (optional)
-- **Test Coverage**: Component and utility function coverage
+### Frontend
+- `npm run dev` - Start development server
+- `npm run build` - Create production build
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript checks
 
-## 🔄 CI/CD Pipeline
+## 🎯 Key Design Decisions
 
-GitHub Actions workflow includes:
-- **Code Quality**: Linting, formatting checks
-- **Testing**: Unit and integration test execution
-- **Build**: Compilation and bundling
-- **Dependency Scanning**: Security vulnerability checks
-- **Performance**: Bundle size analysis
+1. **Hexagonal Architecture**: Ensures clean separation of concerns and testability
+2. **Zustand over Redux**: Simpler state management with less boilerplate
+3. **Java 21**: Modern Java features like pattern matching and virtual threads
+4. **In-Memory Database**: H2 for quick setup and development
+5. **TypeScript**: Type safety across frontend and shared types
+6. **Server-Side Calculation**: Total prices calculated on backend for security
+7. **UUID Identifiers**: Better for distributed systems and security
+
+## 🚀 Deployment Considerations
+
+### Production Enhancements
+- Replace H2 with PostgreSQL/MySQL
+- Add authentication and authorization
+- Implement caching (Redis)
+- Add monitoring and logging
+- Container deployment (Docker)
+- CI/CD pipeline setup
+
+## 🤖 AI Assistance Usage
+
+This project was developed with AI coding assistance for:
+
+- **Code Generation**: Boilerplate code for CRUD operations
+- **Architecture Decisions**: Hexagonal architecture implementation
+- **API Design**: RESTful endpoint structure and OpenAPI documentation
+- **Frontend Components**: React component structure and Zustand integration
+- **Testing**: Unit test case generation and sample data creation
+
+### Reflections on AI Usage
+- **Strengths**: Rapid prototyping and boilerplate generation
+- **Manual Adjustments**: Business logic refinement and architecture decisions
+- **Code Review**: All AI-generated code was reviewed and refactored for maintainability
 
 ## 📈 Future Enhancements
 
-### Immediate Improvements
-- [ ] User authentication and authorization
+- [ ] Pagination for product and order lists
 - [ ] Advanced search and filtering
-- [ ] Order history and tracking
-- [ ] Inventory management alerts
+- [ ] Real-time order status updates
+- [ ] Email notifications
+- [ ] Advanced reporting and analytics
+- [ ] Mobile-responsive design improvements
+- [ ] Integration tests and E2E testing
 
-### Advanced Features
-- [ ] Real-time notifications (WebSockets)
-- [ ] Export functionality (PDF, Excel)
-- [ ] Analytics dashboard
-- [ ] Multi-tenant support
+## 📞 Contact
 
-### Technical Improvements
-- [ ] Caching layer (Redis)
-- [ ] Message queue for async processing
-- [ ] Database migrations
-- [ ] Performance monitoring
-- [ ] Containerization (Docker)
-
-## 🤝 Development Guidelines
-
-### Code Quality Standards
-- Follow SOLID principles
-- Maintain high test coverage
-- Use meaningful naming conventions
-- Document complex business logic
-- Regular code reviews
-
-### Contribution Workflow
-1. Create feature branch from main
-2. Implement changes with tests
-3. Run full test suite
-4. Create pull request with description
-5. Code review and merge
-
-## 📞 Support
-
-For questions or issues, please refer to:
-- API documentation at `/swagger-ui.html`
-- Frontend component storybook (if implemented)
-- Project issue tracker
+**INFORM GmbH Software Development**  
+Contact: benjamin.schleinzer@inform-software.com
 
 ---
 
-**Note**: This project was developed as part of a coding assessment demonstrating full-stack development capabilities, clean architecture principles, and effective use of modern AI development tools.
+**Time Investment**: ~6-8 hours development time (as per exercise requirements)
