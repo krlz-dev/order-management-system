@@ -2,13 +2,27 @@
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
     "build": {
+      "inputs": [
+        "src/**/*.java",
+        "pom.xml",
+        "*.properties",
+        "!target/**"
+      ],
       "outputs": ["target/**"]
     },
     "test": {
+      "inputs": [
+        "src/**/*.java",
+        "pom.xml",
+        "*.properties",
+        "!target/**"
+      ],
       "outputs": ["target/surefire-reports/**"]
     },
     "clean": {
-      "cache": false
+      "cache": false,
+      "inputs": [],
+      "outputs": []
     }
   }
 }

@@ -34,6 +34,21 @@
       "inputs": ["$TURBO_DEFAULT$", ".prettierrc*", "*.config.js"],
       "outputs": []
     },
+    "backend:build": {
+      "inputs": ["backend/**", "!backend/target/**", "!backend/.idea/**"]
+    },
+    "backend:test": {
+      "inputs": ["backend/**", "!backend/target/**", "!backend/.idea/**"]
+    },
+    "frontend:build": {
+      "inputs": ["frontend/**", "!frontend/node_modules/**", "!frontend/.next/**"]
+    },
+    "frontend:test": {
+      "inputs": ["frontend/**", "!frontend/node_modules/**", "!frontend/.next/**"]
+    },
+    "frontend:lint": {
+      "inputs": ["frontend/**", "!frontend/node_modules/**", "!frontend/.next/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
