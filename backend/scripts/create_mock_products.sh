@@ -4,7 +4,21 @@
 # Run this script after starting the application on port 9242
 
 BASE_URL="http://localhost:9242/api/products"
-TOKEN="Egb3GEx51p1Go2v1m0dpFhDhYwEH2wbw1xAa2Cyq7CLqr3K8sCT6LRmHXujzucfu"
+LOGIN_URL="http://localhost:9242/api/auth/login"
+EMAIL="admin1@orderflow.com"
+PASSWORD="admin1"
+
+# Function to get JWT token
+get_jwt_token() {
+    login_response=$(curl -s -X POST \
+        -H "Content-Type: application/json" \
+        -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" \
+        "$LOGIN_URL")
+    
+    # Extract access token using grep and sed
+    access_token=$(echo "$login_response" | grep -o '"accessToken":"[^"]*"' | sed 's/"accessToken":"\(.*\)"/\1/')
+    echo "$access_token"
+}
 
 # Array of product names
 declare -a products=(
@@ -62,7 +76,18 @@ declare -a products=(
 
 echo "Creating 50 mock products..."
 echo "Make sure the application is running on $BASE_URL"
-echo "Using token authentication: ${TOKEN:0:20}..."
+echo ""
+
+# Login and get JWT token
+echo "🔐 Logging in as $EMAIL..."
+JWT_TOKEN=$(get_jwt_token)
+
+if [ -z "$JWT_TOKEN" ]; then
+    echo "❌ Failed to obtain JWT token. Please check login credentials and server status."
+    exit 1
+fi
+
+echo "✅ Login successful! Token: ${JWT_TOKEN:0:20}..."
 echo ""
 
 for i in "${!products[@]}"; do
@@ -77,10 +102,10 @@ for i in "${!products[@]}"; do
     # Create JSON payload
     json_payload="{\"name\":\"$product_name\",\"price\":$price,\"stock\":$stock}"
     
-    # Send POST request with Authorization header
+    # Send POST request with JWT Authorization header
     response=$(curl -s -w "%{http_code}" -X POST \
         -H "Content-Type: application/json" \
-        -H "Authorization: Bearer $TOKEN" \
+        -H "Authorization: Bearer $JWT_TOKEN" \
         -d "$json_payload" \
         "$BASE_URL")
     
@@ -100,4 +125,4 @@ done
 echo ""
 echo "✅ Finished creating mock products!"
 echo "You can view all products at: GET $BASE_URL"
-echo "Remember to include: Authorization: Bearer $TOKEN"
+echo "Remember to include: Authorization: Bearer <your-jwt-token>"

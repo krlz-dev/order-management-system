@@ -1,11 +1,12 @@
 package com.inform.orderms.security;
 
+import com.inform.orderms.service.UserService;
+import com.inform.orderms.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -16,10 +17,10 @@ import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
-public class TokenAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Value("${task.integration.token}")
-    private String validToken;
+    private final JwtUtil jwtUtil;
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -30,10 +31,14 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             
-            if (validToken.equals(token)) {
-                UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken("system", null, Collections.emptyList());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (jwtUtil.validateToken(token) && !jwtUtil.isTokenExpired(token)) {
+                String email = jwtUtil.getEmailFromToken(token);
+                
+                if (email != null && userService.findByEmail(email).isPresent()) {
+                    UsernamePasswordAuthenticationToken authentication = 
+                        new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         }
 
