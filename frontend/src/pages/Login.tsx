@@ -43,7 +43,7 @@ export function Login() {
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
 
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-2xl border border-gray-200/50 backdrop-blur-sm">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl font-semibold">Welcome back</CardTitle>
           </CardHeader>
@@ -59,7 +59,7 @@ export function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                   placeholder="Enter your email"
                 />
               </div>
@@ -75,7 +75,7 @@ export function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                     placeholder="Enter your password"
                   />
                   <button

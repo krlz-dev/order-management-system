@@ -1,6 +1,5 @@
 package com.inform.orderms.security;
 
-import com.inform.orderms.service.UserService;
 import com.inform.orderms.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,7 +19,6 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -34,7 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (jwtUtil.validateToken(token) && !jwtUtil.isTokenExpired(token)) {
                 String email = jwtUtil.getEmailFromToken(token);
                 
-                if (email != null && userService.findByEmail(email).isPresent()) {
+                if (email != null) {
                     UsernamePasswordAuthenticationToken authentication = 
                         new UsernamePasswordAuthenticationToken(email, null, Collections.emptyList());
                     SecurityContextHolder.getContext().setAuthentication(authentication);

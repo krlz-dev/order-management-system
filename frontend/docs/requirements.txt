@@ -1,0 +1,12 @@
+1. Product Management
+• Create, update, delete, and list products
+• Product attributes:
+– id (UUID or autoincrement)
+– name (String)
+– price (Number)
+– stock (Number)
+
+2. Order Management
+• An order contains one or more products (each with quantity)
+• Total price is calculated server-side
+• List orders and display details

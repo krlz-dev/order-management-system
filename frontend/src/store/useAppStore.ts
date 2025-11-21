@@ -11,22 +11,13 @@ interface User {
 }
 
 interface AppState {
-  // App-wide state
   isLoading: boolean
   error: string | null
-  
-  // Authentication state
   isAuthenticated: boolean
   accessToken: string | null
   user: User | null
-  
-  // Navigation state
   currentPage: PageType
-  
-  // Ping pong demo state
   pingResponse: string | null
-  
-  // Actions
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   setPingResponse: (response: string | null) => void
@@ -54,7 +45,6 @@ const getStoredUser = (): User | null => {
 export const useAppStore = create<AppState>()(
   devtools(
     (set) => ({
-      // Initial state
       isLoading: false,
       error: null,
       isAuthenticated: !!getStoredToken(),
@@ -62,8 +52,6 @@ export const useAppStore = create<AppState>()(
       user: getStoredUser(),
       currentPage: 'dashboard',
       pingResponse: null,
-      
-      // Actions
       setLoading: (loading) => set({ isLoading: loading }),
       setError: (error) => set({ error }),
       setPingResponse: (response) => set({ pingResponse: response }),
