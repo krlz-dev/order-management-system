@@ -6,6 +6,8 @@ import com.inform.orderms.model.Product;
 import com.inform.orderms.repository.OrderRepository;
 import com.inform.orderms.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +27,28 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public Page<Order> getAllOrders(Pageable pageable) {
+        Page<Order> orders = orderRepository.findAll(pageable);
+        // Force initialization of orderItems to avoid lazy loading issues
+        orders.getContent().forEach(order -> order.getOrderItems().size());
+        return orders;
+    }
+
+    @Transactional(readOnly = true)
     public Optional<Order> getOrderById(UUID id) {
-        return orderRepository.findById(id);
+        Optional<Order> order = orderRepository.findById(id);
+        // Force initialization of orderItems to avoid lazy loading issues
+        order.ifPresent(o -> o.getOrderItems().size());
+        return order;
     }
 
     @Transactional
     public Order createOrder(Order order) {
+        if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
+            throw new RuntimeException("Order must contain at least one item");
+        }
+        
         BigDecimal totalPrice = BigDecimal.ZERO;
         
         for (OrderItem orderItem : order.getOrderItems()) {

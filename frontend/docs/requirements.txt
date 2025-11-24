@@ -10,3 +10,6 @@
 • An order contains one or more products (each with quantity)
 • Total price is calculated server-side
 • List orders and display details
+
+
+https://trello.com/b/Y427az1M/inform-task

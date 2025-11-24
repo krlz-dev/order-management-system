@@ -1,3 +1,5 @@
+import type { Product, ProductCreateRequest, Order, OrderCreateRequest, PageResponse, ProductFilters, PaginationParams } from '@/types'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 export interface ApiResponse<T> {
@@ -89,17 +91,83 @@ class ApiService {
     return this.request<{ message: string }>('/ping', {}, true)
   }
 
-  // Add more API methods here as needed
+  // Products API
+  async getProducts(params: Partial<PaginationParams & ProductFilters> = {}): Promise<ApiResponse<PageResponse<Product>>> {
+    const searchParams = new URLSearchParams()
+    
+    // Pagination params
+    if (params.page !== undefined) searchParams.append('page', params.page.toString())
+    if (params.size !== undefined) searchParams.append('size', params.size.toString())
+    if (params.sortBy) searchParams.append('sortBy', params.sortBy)
+    if (params.sortDir) searchParams.append('sortDir', params.sortDir)
+    
+    // Filter params
+    if (params.search) searchParams.append('search', params.search)
+    if (params.name) searchParams.append('name', params.name)
+    if (params.minPrice !== undefined) searchParams.append('minPrice', params.minPrice.toString())
+    if (params.maxPrice !== undefined) searchParams.append('maxPrice', params.maxPrice.toString())
+    if (params.minStock !== undefined) searchParams.append('minStock', params.minStock.toString())
+    if (params.maxStock !== undefined) searchParams.append('maxStock', params.maxStock.toString())
+    
+    const queryString = searchParams.toString()
+    const endpoint = queryString ? `/products?${queryString}` : '/products'
+    
+    return this.request<PageResponse<Product>>(endpoint, {}, true)
+  }
+
+  async getProduct(id: string): Promise<ApiResponse<Product>> {
+    return this.request<Product>(`/products/${id}`, {}, true)
+  }
+
+  async createProduct(product: ProductCreateRequest): Promise<ApiResponse<Product>> {
+    return this.request<Product>('/products', {
+      method: 'POST',
+      body: JSON.stringify(product),
+    }, true)
+  }
+
+  async updateProduct(id: string, product: Partial<Product>): Promise<ApiResponse<Product>> {
+    return this.request<Product>(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(product),
+    }, true)
+  }
+
+  async deleteProduct(id: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/products/${id}`, {
+      method: 'DELETE',
+    }, true)
+  }
+
+  // Orders API
+  async getOrders(params: Partial<PaginationParams> = {}): Promise<ApiResponse<PageResponse<Order>>> {
+    const searchParams = new URLSearchParams()
+    
+    if (params.page !== undefined) searchParams.append('page', params.page.toString())
+    if (params.size !== undefined) searchParams.append('size', params.size.toString())
+    if (params.sortBy) searchParams.append('sortBy', params.sortBy)
+    if (params.sortDir) searchParams.append('sortDir', params.sortDir)
+    
+    const queryString = searchParams.toString()
+    const endpoint = queryString ? `/orders?${queryString}` : '/orders'
+    
+    return this.request<PageResponse<Order>>(endpoint, {}, true)
+  }
+
+  async getOrder(id: string): Promise<ApiResponse<Order>> {
+    return this.request<Order>(`/orders/${id}`, {}, true)
+  }
+
+  async createOrder(order: OrderCreateRequest): Promise<ApiResponse<Order>> {
+    return this.request<Order>('/orders', {
+      method: 'POST',
+      body: JSON.stringify(order),
+    }, true)
+  }
+
+  // Profile API
   async getProfile(): Promise<ApiResponse<any>> {
     return this.request('/auth/profile', {}, true)
-  }
-
-  async getOrders(): Promise<ApiResponse<any[]>> {
-    return this.request('/orders', {}, true)
-  }
-
-  async getProducts(): Promise<ApiResponse<any[]>> {
-    return this.request('/products', {}, true)
   }
 
   async getCustomers(): Promise<ApiResponse<any[]>> {

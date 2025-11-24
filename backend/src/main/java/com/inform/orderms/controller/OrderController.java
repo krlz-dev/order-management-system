@@ -1,5 +1,7 @@
 package com.inform.orderms.controller;
 
+import com.inform.orderms.dto.PageResponse;
+import com.inform.orderms.dto.ErrorResponse;
 import com.inform.orderms.model.Order;
 import com.inform.orderms.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,8 +11,13 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,12 +33,33 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    @Operation(summary = "Get all orders", description = "Retrieve a list of all orders with their details")
+    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with their details")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved orders")
-    public ResponseEntity<List<Order>> getAllOrders() {
-        List<Order> orders = orderService.getAllOrders();
-        return ResponseEntity.ok(orders);
+    public ResponseEntity<PageResponse<Order>> getAllOrders(
+            @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Sort direction (asc/desc)") @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        Page<Order> orders = orderService.getAllOrders(pageable);
+        
+        PageResponse<Order> response = new PageResponse<>(
+                orders.getContent(),
+                orders.getNumber(),
+                orders.getSize(),
+                orders.getTotalElements(),
+                orders.getTotalPages(),
+                orders.isFirst(),
+                orders.isLast()
+        );
+        
+        return ResponseEntity.ok(response);
     }
+
 
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Retrieve an order by its unique identifier")
@@ -58,7 +86,8 @@ public class OrderController {
             Order createdOrder = orderService.createOrder(order);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            ErrorResponse errorResponse = new ErrorResponse("BAD_REQUEST", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 }

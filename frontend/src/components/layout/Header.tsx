@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/useAppStore'
-import { Menu, Bell, User, Search, LogOut } from 'lucide-react'
+import { Menu, Bell, User, LogOut } from 'lucide-react'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -29,15 +29,6 @@ export function Header({ onMenuClick, title }: HeaderProps) {
       </div>
       
       <div className="flex items-center gap-3">
-        <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2 min-w-[300px]">
-          <Search className="h-4 w-4 text-gray-500 mr-2" />
-          <input
-            type="text"
-            placeholder="Search orders, customers..."
-            className="bg-transparent border-none outline-none flex-1 text-sm text-gray-700 placeholder-gray-500"
-          />
-        </div>
-        
         <Button variant="ghost" size="icon" className="relative hover:bg-gray-100">
           <Bell className="h-5 w-5" />
           <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
