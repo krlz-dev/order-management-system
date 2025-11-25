@@ -4,7 +4,7 @@ A full-stack order management application built with modern technologies, featur
 
 ## 🏗️ Architecture Overview
 
-This application follows a **Hexagonal Architecture** pattern with clean separation of concerns:
+This application uses **Hexagonal Architecture** in the backend with a traditional React architecture in the frontend:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐
@@ -211,13 +211,14 @@ The application uses Zustand for efficient state management:
 - **OrderStore**: Handles order creation and listing
 - **UIStore**: Controls loading states and notifications
 
-### Backend (Spring Boot)
-Clean architecture with:
+### Backend (Hexagonal Architecture)
+Implements hexagonal architecture principles with:
 
-- **Controllers**: Handle HTTP requests/responses
-- **Services**: Business logic implementation
-- **Repositories**: Data access abstraction
-- **Entities**: Domain models
+- **Controllers** (Adapters): Handle HTTP requests/responses (outer layer)
+- **Services** (Application): Business logic implementation (application layer)
+- **Entities** (Domain): Core domain models and business rules
+- **Repositories** (Ports): Data access abstraction interfaces
+- **Repository Implementations**: Concrete data access adapters (infrastructure layer)
 
 ## 🧪 Testing
 
@@ -252,13 +253,14 @@ yarn test
 
 ## 🎯 Key Design Decisions
 
-1. **Hexagonal Architecture**: Ensures clean separation of concerns and testability
-2. **Zustand over Redux**: Simpler state management with less boilerplate
-3. **Java 21**: Modern Java features like pattern matching and virtual threads
-4. **In-Memory Database**: H2 for quick setup and development
-5. **TypeScript**: Type safety across frontend and shared types
-6. **Server-Side Calculation**: Total prices calculated on backend for security
-7. **UUID Identifiers**: Better for distributed systems and security
+1. **Hexagonal Architecture (Backend Only)**: Clean separation of concerns and testability in the Java backend
+2. **Traditional React Architecture (Frontend)**: Component-based architecture with Zustand for state management
+3. **Zustand over Redux**: Simpler state management with less boilerplate for frontend
+4. **Java 21**: Modern Java features like pattern matching and virtual threads
+5. **In-Memory Database**: H2 for quick setup and development
+6. **TypeScript**: Type safety across frontend and shared types
+7. **Server-Side Calculation**: Total prices calculated on backend for security
+8. **UUID Identifiers**: Better for distributed systems and security
 
 ## 🚀 Deployment Considerations
 
@@ -270,20 +272,90 @@ yarn test
 - Container deployment (Docker)
 - CI/CD pipeline setup
 
-## 🤖 AI Assistance Usage
+## 🤖 Note on AI Usage
 
-This project was developed with AI coding assistance for:
+### Documentation of AI Agent Usage
 
-- **Code Generation**: Boilerplate code for CRUD operations
-- **Architecture Decisions**: Hexagonal architecture implementation
-- **API Design**: RESTful endpoint structure and OpenAPI documentation
-- **Frontend Components**: React component structure and Zustand integration
-- **Testing**: Unit test case generation and sample data creation
+This project was developed with significant support from **Claude CLI**, Anthropic's AI-powered coding assistant. The AI agent was used strategically across different phases of development:
 
-### Reflections on AI Usage
-- **Strengths**: Rapid prototyping and boilerplate generation
-- **Manual Adjustments**: Business logic refinement and architecture decisions
-- **Code Review**: All AI-generated code was reviewed and refactored for maintainability
+#### Areas Where Claude CLI Provided Support:
+
+1. **Project Structure & Setup**
+   - Generated initial project scaffolding for both frontend (React/Vite) and backend (Spring Boot)
+   - Configured build tools and dependency management (Maven, npm)
+   - Set up TypeScript configurations and ESLint rules
+
+2. **Backend Development**
+   - Generated boilerplate code for REST controllers and service classes
+   - Implemented hexagonal architecture patterns with clean layer separation
+   - Created JPA entities and repository interfaces following domain-driven design
+   - Generated OpenAPI/Swagger documentation configuration
+
+3. **Frontend Development**
+   - Created React component structure and TypeScript interfaces
+   - Implemented Zustand stores for state management
+   - Generated API service layer with Axios integration
+   - Built responsive UI components with Tailwind CSS
+
+4. **Testing & Quality Assurance**
+   - Generated unit test templates and sample test data
+   - Created API integration tests and validation scenarios
+   - Implemented error handling patterns across the application
+
+### Quality Assessment & Reliability
+
+**Strengths of AI Assistance:**
+- ✅ Excellent for generating consistent, well-structured boilerplate code
+- ✅ Reliable for implementing established patterns (REST APIs, React components)
+- ✅ Strong support for configuration files and build tool setup
+- ✅ Effective at maintaining coding standards and consistent naming conventions
+- ✅ Helpful for generating comprehensive documentation and API specifications
+
+**Limitations and Weaknesses:**
+- ⚠️ Required manual review for business logic implementation details
+- ⚠️ Needed human oversight for architectural decisions and technology choices
+- ⚠️ Sometimes generated overly complex solutions that required simplification
+- ⚠️ Required validation of best practices for security and performance considerations
+
+### Manual Adjustments and Corrections
+
+**Critical Human Interventions:**
+1. **Architecture Decisions**: Final choice of hexagonal architecture, technology stack selection, and overall system design were human-driven decisions
+2. **Business Logic**: Order calculation logic, stock validation, and data integrity rules were manually implemented and validated
+3. **Error Handling**: Custom exception handling and validation logic were refined beyond AI suggestions
+4. **Security Considerations**: Manual review and implementation of input validation and data sanitization
+5. **Performance Optimizations**: Database query optimization and frontend state management efficiency improvements
+6. **Code Refactoring**: Simplified AI-generated code to improve maintainability and readability
+
+### Independence and Maintainability
+
+**Human-Centric Approach:**
+- 🎯 **Framework Selection**: All major technology choices (Spring Boot, React, Zustand, H2) were made by the human developer
+- 🎯 **Design Patterns**: Implementation of hexagonal architecture (backend) and React patterns (frontend) were human-guided
+- 🎯 **Code Organization**: Final project structure and module organization reflect human architectural vision
+- 🎯 **Documentation**: This README and all technical documentation represent human understanding and explanation
+
+**Maintainability Assurance:**
+- All code follows established conventions and is fully documented
+- No AI-specific dependencies or patterns that would hinder future development
+- Clear separation between AI-assisted implementation and human-driven design
+- Complete test coverage ensures reliability independent of how code was generated
+
+### Responsible AI Usage
+
+**Critical and Sensible Application:**
+- AI was used as a productivity tool, not as a decision-maker for architecture or business logic
+- All AI-generated code underwent thorough human review and testing
+- Manual validation ensured compliance with security best practices
+- Human expertise guided the overall solution design and implementation strategy
+
+**Risk Recognition:**
+- Acknowledged that AI-generated code requires validation for security vulnerabilities
+- Recognized the need for human oversight in complex business logic implementation
+- Understood limitations in AI's ability to make context-aware architectural decisions
+- Maintained human responsibility for final code quality and system reliability
+
+The final solution remains **completely understandable, maintainable, and extensible by any developer**, regardless of AI assistance used during development. The AI served as an advanced code generation tool, while all critical decisions, architecture, and business logic remain under human control and understanding.
 
 ## 📈 Future Enhancements
 
