@@ -3,12 +3,9 @@ import { useAppStore, type PageType } from '@/store/useAppStore'
 import { 
   Package, 
   ShoppingCart, 
-  Users, 
-  BarChart3, 
-  Settings, 
   Home,
-  TruckIcon,
-  CreditCard,
+  Archive,
+  ClipboardList,
   X
 } from 'lucide-react'
 
@@ -26,13 +23,9 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { icon: Home, label: 'Dashboard', page: 'dashboard' },
-  { icon: ShoppingCart, label: 'Orders', page: 'orders', badge: 12 },
-  { icon: Package, label: 'Products', page: 'products' },
-  { icon: Users, label: 'Customers', page: 'customers' },
-  { icon: TruckIcon, label: 'Shipping', page: 'shipping' },
-  { icon: CreditCard, label: 'Payments', page: 'payments' },
-  { icon: BarChart3, label: 'Analytics', page: 'analytics' },
-  { icon: Settings, label: 'Settings', page: 'settings' },
+  { icon: ShoppingCart, label: 'Products', page: 'products' },
+  { icon: ClipboardList, label: 'My Orders', page: 'orders' },
+  { icon: Archive, label: 'Inventory', page: 'inventory' },
 ]
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -110,7 +103,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="p-4 border-t border-white/10">
             <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 cursor-pointer">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5" />
+                <Package className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">

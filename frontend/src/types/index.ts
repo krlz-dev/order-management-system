@@ -57,3 +57,28 @@ export interface PaginationParams {
   sortBy: string
   sortDir: 'asc' | 'desc'
 }
+
+export interface CartCalculationItem {
+  productId: string
+  quantity: number
+}
+
+export interface CartCalculationRequest {
+  items: CartCalculationItem[]
+}
+
+export interface CartItemDetails {
+  productId: string
+  productName: string
+  unitPrice: number
+  quantity: number
+  itemTotal: number
+  available: boolean
+  availableStock: number
+}
+
+export interface CartCalculationResponse {
+  items: CartItemDetails[]
+  totalPrice: number
+  totalItems: number
+}

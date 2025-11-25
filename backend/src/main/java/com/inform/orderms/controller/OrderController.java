@@ -1,7 +1,10 @@
 package com.inform.orderms.controller;
 
-import com.inform.orderms.dto.PageResponse;
+import com.inform.orderms.dto.CartCalculationRequest;
+import com.inform.orderms.dto.CartCalculationResponse;
 import com.inform.orderms.dto.ErrorResponse;
+import com.inform.orderms.dto.OrderSummaryResponse;
+import com.inform.orderms.dto.PageResponse;
 import com.inform.orderms.model.Order;
 import com.inform.orderms.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,9 +37,9 @@ public class OrderController {
     private final OrderService orderService;
 
     @GetMapping
-    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with their details")
+    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with optimized response structure")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved orders")
-    public ResponseEntity<PageResponse<Order>> getAllOrders(
+    public ResponseEntity<PageResponse<OrderSummaryResponse>> getAllOrders(
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -45,9 +49,9 @@ public class OrderController {
             Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<Order> orders = orderService.getAllOrders(pageable);
+        Page<OrderSummaryResponse> orders = orderService.getAllOrdersSummary(pageable);
         
-        PageResponse<Order> response = new PageResponse<>(
+        PageResponse<OrderSummaryResponse> response = new PageResponse<>(
                 orders.getContent(),
                 orders.getNumber(),
                 orders.getSize(),
@@ -59,7 +63,6 @@ public class OrderController {
         
         return ResponseEntity.ok(response);
     }
-
 
     @GetMapping("/{id}")
     @Operation(summary = "Get order by ID", description = "Retrieve an order by its unique identifier")
@@ -81,10 +84,27 @@ public class OrderController {
         @ApiResponse(responseCode = "400", description = "Invalid order data or insufficient stock")
     })
     public ResponseEntity<?> createOrder(
-            @Parameter(description = "Order details with products and quantities") @RequestBody Order order) {
+            @Parameter(description = "Cart items with products and quantities") @Valid @RequestBody CartCalculationRequest request) {
         try {
-            Order createdOrder = orderService.createOrder(order);
+            Order createdOrder = orderService.createOrderFromCart(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
+        } catch (RuntimeException e) {
+            ErrorResponse errorResponse = new ErrorResponse("BAD_REQUEST", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
+    @PostMapping("/calculate")
+    @Operation(summary = "Calculate cart total", description = "Calculate total price and validate stock for cart items before order creation")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Cart calculation completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid cart data")
+    })
+    public ResponseEntity<?> calculateCartTotal(
+            @Parameter(description = "Cart items for calculation") @Valid @RequestBody CartCalculationRequest request) {
+        try {
+            CartCalculationResponse response = orderService.calculateCartTotal(request);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse("BAD_REQUEST", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);

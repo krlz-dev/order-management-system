@@ -62,6 +62,33 @@ export const authUtils = {
     return token ? tokenStorage.isTokenValid(token) : false
   },
 
+  validateTokenWithServer: async (): Promise<boolean> => {
+    const token = tokenStorage.getToken()
+    if (!token || !tokenStorage.isTokenValid(token)) {
+      return false
+    }
+
+    try {
+      const API_BASE_URL = import.meta?.env?.VITE_API_BASE_URL || 'http://localhost:8080/api'
+      const response = await fetch(`${API_BASE_URL}/auth/validate`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        return data.valid === true
+      }
+      return false
+    } catch (error) {
+      console.error('Token validation failed:', error)
+      return false
+    }
+  },
+
   shouldRefreshToken: (): boolean => {
     const token = tokenStorage.getToken()
     if (!token) return false

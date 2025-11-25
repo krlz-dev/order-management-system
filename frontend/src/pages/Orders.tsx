@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { AgGridReact } from 'ag-grid-react'
 import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community'
-import type { ColDef, PaginationChangedEvent, SortChangedEvent, GridReadyEvent, GridApi } from 'ag-grid-community'
+import type { ColDef, PaginationChangedEvent, SortChangedEvent, GridReadyEvent } from 'ag-grid-community'
 import 'ag-grid-community/styles/ag-grid.css'
 import 'ag-grid-community/styles/ag-theme-alpine.css'
 
@@ -16,34 +16,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ShoppingCart, Plus, Eye, MoreVertical, Download, RefreshCw } from 'lucide-react'
-import { apiService } from '@/services/api'
-import type { Order, PaginationParams } from '@/types'
-import { OrderCreationDialog } from '@/components/OrderCreationDialog'
+import { ShoppingCart, Eye, MoreVertical, Download, RefreshCw } from 'lucide-react'
+import type { Order } from '@/types'
 import { OrderDetailsDialog } from '@/components/OrderDetailsDialog'
+import { useOrders } from '@/hooks/useOrders'
 
 interface OrderRowData extends Order {
   actions?: string
 }
 
-export function Orders() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [gridApi, setGridApi] = useState<GridApi | null>(null)
-  const [pagination, setPagination] = useState({
+export function MyOrders() {
+  // Local state for UI controls
+  const [queryParams, setQueryParams] = useState({
     page: 0,
     size: 10,
-    totalElements: 0,
-    totalPages: 0
-  })
-  const [sortModel, setSortModel] = useState({
     sortBy: 'createdAt',
     sortDir: 'desc' as 'asc' | 'desc'
   })
-  const [createOrderOpen, setCreateOrderOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+
+  // Use React Query hook
+  const {
+    orders,
+    pagination,
+    isLoading,
+    error,
+    refetch,
+    createOrder,
+    isCreating,
+    createError
+  } = useOrders(queryParams)
+
+  // Combine all errors
+  const allErrors = [error, createError].filter(Boolean).join(', ')
 
   const columnDefs = useMemo<ColDef<OrderRowData>[]>(() => [
     {
@@ -63,6 +69,15 @@ export function Orders() {
       flex: 1,
       minWidth: 120,
       valueFormatter: (params) => `$${params.value?.toFixed(2) || '0.00'}`
+    },
+    {
+      headerName: 'Total Items',
+      field: 'totalItems',
+      sortable: true,
+      filter: 'agNumberColumnFilter',
+      flex: 1,
+      minWidth: 100,
+      valueFormatter: (params) => params.value?.toString() || '0'
     },
     {
       headerName: 'Order Date',
@@ -87,7 +102,7 @@ export function Orders() {
         if (!params.value || !Array.isArray(params.value)) return ''
         
         const products = params.value
-          .map((item: any) => `${item.product?.name || 'Unknown'} (${item.quantity})`)
+          .map((item: any) => `${item.productName || 'Unknown'} (${item.quantity})`)
           .join(', ')
         
         const maxLength = 50
@@ -151,93 +166,48 @@ export function Orders() {
     }
   ], [])
 
-  const loadOrders = useCallback(async (page?: number, size?: number, sortBy?: string, sortDir?: 'asc' | 'desc') => {
-    setLoading(true)
-    setError(null)
-    
-    const currentPage = page !== undefined ? page : pagination.page
-    const currentSize = size !== undefined ? size : pagination.size
-    const currentSortBy = sortBy || sortModel.sortBy
-    const currentSortDir = sortDir || sortModel.sortDir
-    
-    try {
-      const response = await apiService.getOrders({
-        page: currentPage,
-        size: currentSize,
-        sortBy: currentSortBy,
-        sortDir: currentSortDir
-      })
-      
-      if (response.success && response.data) {
-        setOrders(response.data.content)
-        setPagination({
-          page: response.data.page,
-          size: response.data.size,
-          totalElements: response.data.totalElements,
-          totalPages: response.data.totalPages
-        })
-        if (sortBy && sortDir) {
-          setSortModel({ sortBy: currentSortBy, sortDir: currentSortDir })
-        }
-        
-        // Sync AG Grid pagination with server response
-        if (gridApi) {
-          gridApi.paginationGoToPage(response.data.page)
-        }
-      } else {
-        setError(response.error || 'Failed to load orders')
-      }
-    } catch (err) {
-      setError('Failed to load orders')
-    } finally {
-      setLoading(false)
-    }
-  }, [pagination.page, pagination.size, sortModel.sortBy, sortModel.sortDir])
 
-  useEffect(() => {
-    loadOrders()
-  }, [])
+  const onGridReady = () => {
+    // Grid ready handler - no longer needed for pagination sync
+  }
 
-  const onGridReady = useCallback((params: GridReadyEvent) => {
-    setGridApi(params.api)
-  }, [])
-
-  const onPaginationChanged = useCallback((event: PaginationChangedEvent) => {
+  const onPaginationChanged = (event: PaginationChangedEvent) => {
     const currentPage = event.api.paginationGetCurrentPage()
     const pageSize = event.api.paginationGetPageSize()
     
-    console.log('Orders pagination changed:', { currentPage, pageSize, statePage: pagination.page, stateSize: pagination.size })
-    
     // Handle page size changes
-    if (pageSize !== pagination.size) {
-      console.log('Orders page size changed, loading with new size:', pageSize)
-      loadOrders(0, pageSize) // Reset to first page when page size changes
+    if (pageSize !== queryParams.size) {
+      setQueryParams(prev => ({
+        ...prev,
+        page: 0, // Reset to first page when page size changes
+        size: pageSize
+      }))
       return
     }
     
     // Handle page navigation
-    if (currentPage !== pagination.page) {
-      console.log('Orders page navigation, loading page:', currentPage)
-      loadOrders(currentPage)
+    if (currentPage !== queryParams.page) {
+      setQueryParams(prev => ({
+        ...prev,
+        page: currentPage
+      }))
     }
-  }, [loadOrders, pagination.page, pagination.size])
+  }
 
-  const onSortChanged = useCallback((event: SortChangedEvent) => {
+  const onSortChanged = (event: SortChangedEvent) => {
     const sortModel = event.api.getColumnState().find(col => col.sort)
     if (sortModel) {
       const newSortBy = sortModel.colId
       const newSortDir = sortModel.sort === 'desc' ? 'desc' : 'asc'
-      loadOrders(0, undefined, newSortBy, newSortDir) // Reset to first page when sorting
+      setQueryParams(prev => ({
+        ...prev,
+        page: 0, // Reset to first page when sorting
+        sortBy: newSortBy,
+        sortDir: newSortDir
+      }))
     }
-  }, [loadOrders])
-
-  const handleCreateOrder = () => {
-    setCreateOrderOpen(true)
   }
 
-  const handleOrderCreated = () => {
-    loadOrders() // Refresh the orders list
-  }
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -253,21 +223,15 @@ export function Orders() {
     // TODO: Implement order refresh functionality
     console.log('Refresh order status', orderId)
     // For now, just reload the current page
-    loadOrders()
+    refetch()
   }
 
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Orders</h2>
-            <p className="text-gray-600">Manage and track all customer orders.</p>
-          </div>
-          <Button onClick={handleCreateOrder} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create Order
-          </Button>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">My Orders</h2>
+          <p className="text-gray-600">View and track all your orders.</p>
         </div>
       </div>
       
@@ -275,13 +239,13 @@ export function Orders() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5" />
-            Order Management ({pagination.totalElements} orders)
+            Order Management ({pagination?.totalElements || 0} orders)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {error && (
+          {allErrors && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
+              {allErrors}
             </div>
           )}
           
@@ -291,10 +255,10 @@ export function Orders() {
               rowData={orders}
               columnDefs={columnDefs}
               pagination={true}
-              paginationPageSize={pagination.size}
+              paginationPageSize={pagination?.size || 10}
               paginationPageSizeSelector={[10, 20, 50]}
               suppressPaginationPanel={false}
-              loading={loading}
+              loading={isLoading || isCreating}
               onGridReady={onGridReady}
               onPaginationChanged={onPaginationChanged}
               onSortChanged={onSortChanged}
@@ -310,28 +274,26 @@ export function Orders() {
               rowBuffer={0}
               className="ag-theme-alpine"
               // Force AG Grid to show correct total rows for server-side pagination
-              rowCount={pagination.totalElements}
+              rowCount={pagination?.totalElements || 0}
             />
           </div>
           
           <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
             <div>
-              Showing {pagination.page * pagination.size + 1} to{' '}
-              {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{' '}
-              {pagination.totalElements} entries
+              {pagination && (
+                <>
+                  Showing {pagination.page * pagination.size + 1} to{' '}
+                  {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{' '}
+                  {pagination.totalElements} entries
+                </>
+              )}
             </div>
             <div>
-              {pagination.totalElements} total orders
+              {pagination?.totalElements || 0} total orders
             </div>
           </div>
         </CardContent>
       </Card>
-
-      <OrderCreationDialog
-        open={createOrderOpen}
-        onClose={() => setCreateOrderOpen(false)}
-        onOrderCreated={handleOrderCreated}
-      />
 
       <OrderDetailsDialog
         open={detailsOpen}

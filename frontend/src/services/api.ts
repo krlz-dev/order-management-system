@@ -1,4 +1,4 @@
-import type { Product, ProductCreateRequest, Order, OrderCreateRequest, PageResponse, ProductFilters, PaginationParams } from '@/types'
+import type { Product, ProductCreateRequest, Order, OrderCreateRequest, PageResponse, ProductFilters, PaginationParams, CartCalculationRequest, CartCalculationResponse } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
@@ -15,12 +15,26 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
   user: {
     id: string
     email: string
     name: string
     role: string
   }
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresIn: number
 }
 
 class ApiService {
@@ -84,6 +98,17 @@ class ApiService {
     return this.request<void>('/auth/logout', {
       method: 'POST',
     }, true)
+  }
+
+  async refreshToken(refreshToken: string): Promise<ApiResponse<RefreshTokenResponse>> {
+    return this.request<RefreshTokenResponse>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    })
+  }
+
+  async validateToken(): Promise<ApiResponse<{ valid: boolean; email?: string }>> {
+    return this.request<{ valid: boolean; email?: string }>('/auth/validate', {}, true)
   }
 
   // Protected endpoints
@@ -158,10 +183,17 @@ class ApiService {
     return this.request<Order>(`/orders/${id}`, {}, true)
   }
 
-  async createOrder(order: OrderCreateRequest): Promise<ApiResponse<Order>> {
+  async createOrder(cartRequest: CartCalculationRequest): Promise<ApiResponse<Order>> {
     return this.request<Order>('/orders', {
       method: 'POST',
-      body: JSON.stringify(order),
+      body: JSON.stringify(cartRequest),
+    }, true)
+  }
+
+  async calculateCart(cartRequest: CartCalculationRequest): Promise<ApiResponse<CartCalculationResponse>> {
+    return this.request<CartCalculationResponse>('/orders/calculate', {
+      method: 'POST',
+      body: JSON.stringify(cartRequest),
     }, true)
   }
 

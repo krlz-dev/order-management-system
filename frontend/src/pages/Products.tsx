@@ -1,217 +1,71 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { AgGridReact } from 'ag-grid-react'
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community'
-import type { ColDef, GridReadyEvent, PaginationChangedEvent, SortChangedEvent, GridApi } from 'ag-grid-community'
-import 'ag-grid-community/styles/ag-grid.css'
-import 'ag-grid-community/styles/ag-theme-alpine.css'
-
-// Register AG Grid modules
-ModuleRegistry.registerModules([AllCommunityModule])
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Package, Plus, Edit, Trash2, MoreVertical, Eye, Search, X } from 'lucide-react'
+  ShoppingCart, 
+  Plus, 
+  Minus, 
+  Search, 
+  X, 
+  Package,
+  DollarSign,
+  Trash2
+} from 'lucide-react'
 import { apiService } from '@/services/api'
-import type { Product, PageResponse, PaginationParams, ProductFilters, ProductCreateRequest } from '@/types'
-import { ProductModal } from '@/components/ProductModal'
-
-interface ProductRowData extends Product {
-  actions?: string
-}
+import { useCart } from '@/hooks/useCart'
+import type { Product, PageResponse, ProductFilters } from '@/types'
 
 export function Products() {
   const [products, setProducts] = useState<Product[]>([])
-  const [allProducts, setAllProducts] = useState<ProductRowData[]>([]) // For AG Grid pagination
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [gridApi, setGridApi] = useState<GridApi | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [filters, setFilters] = useState<ProductFilters>({})
   const [pagination, setPagination] = useState({
     page: 0,
-    size: 10,
+    size: 20,
     totalElements: 0,
     totalPages: 0
   })
-  const [sortModel, setSortModel] = useState({
-    sortBy: 'name',
-    sortDir: 'asc' as 'asc' | 'desc'
-  })
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined)
-  const [isEdit, setIsEdit] = useState(false)
 
-  const columnDefs = useMemo<ColDef<ProductRowData>[]>(() => [
-    {
-      headerName: 'Name',
-      field: 'name',
-      sortable: true,
-      filter: true,
-      flex: 2,
-      minWidth: 200,
-      cellRenderer: (params: any) => {
-        if (params.data.id?.startsWith('placeholder-') || !params.data.name) {
-          return ''
-        }
-        return params.value
-      }
-    },
-    {
-      headerName: 'Price',
-      field: 'price',
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-      flex: 1,
-      minWidth: 120,
-      valueFormatter: (params) => {
-        if (params.data.id?.startsWith('placeholder-') || !params.data.name) {
-          return ''
-        }
-        return `$${params.value?.toFixed(2) || '0.00'}`
-      }
-    },
-    {
-      headerName: 'Stock',
-      field: 'stock',
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-      flex: 1,
-      minWidth: 100,
-      cellRenderer: (params: any) => {
-        if (params.data.id?.startsWith('placeholder-') || !params.data.name) {
-          return ''
-        }
-        return params.value
-      },
-      cellStyle: (params) => {
-        if (params.data.id?.startsWith('placeholder-') || !params.data.name) {
-          return null
-        }
-        if (params.value <= 10) {
-          return { color: 'red', fontWeight: 'bold' }
-        }
-        return null
-      }
-    },
-    {
-      headerName: 'Actions',
-      field: 'actions',
-      sortable: false,
-      filter: false,
-      flex: 1,
-      minWidth: 80,
-      cellRenderer: (params: any) => {
-        // Don't show actions for placeholder rows
-        if (params.data.id?.startsWith('placeholder-') || !params.data.name) {
-          return ''
-        }
-        
-        return (
-          <div className="flex items-center justify-center h-full">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[160px]">
-                <DropdownMenuItem onClick={() => handleView(params.data)}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleEdit(params.data)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Product
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => handleDelete(params.data.id)}
-                  className="text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Product
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )
-      }
-    }
-  ], [])
+  const {
+    items,
+    addItem,
+    removeItem,
+    updateQuantity,
+    getTotalPrice,
+    getTotalItems,
+    getItemQuantity,
+    isCalculating
+  } = useCart()
 
-  const loadProducts = useCallback(async (page?: number, size?: number, sortBy?: string, sortDir?: 'asc' | 'desc', searchFilters?: ProductFilters) => {
+  const loadProducts = useCallback(async (page = 0, resetProducts = false) => {
     setLoading(true)
     setError(null)
-    
-    const currentPage = page !== undefined ? page : pagination.page
-    const currentSize = size !== undefined ? size : pagination.size
-    const currentSortBy = sortBy || sortModel.sortBy
-    const currentSortDir = sortDir || sortModel.sortDir
-    const currentFilters = searchFilters || filters
-    
+
     try {
       const response = await apiService.getProducts({
-        page: currentPage,
-        size: currentSize,
-        sortBy: currentSortBy,
-        sortDir: currentSortDir,
-        ...currentFilters
+        page,
+        size: pagination.size,
+        sortBy: 'name',
+        sortDir: 'asc',
+        ...filters
       })
-      
+
       if (response.success && response.data) {
-        setProducts(response.data.content)
+        if (resetProducts || page === 0) {
+          setProducts(response.data.content)
+        } else {
+          setProducts(prev => [...prev, ...response.data.content])
+        }
+        
         setPagination({
           page: response.data.page,
           size: response.data.size,
           totalElements: response.data.totalElements,
           totalPages: response.data.totalPages
         })
-        if (sortBy && sortDir) {
-          setSortModel({ sortBy: currentSortBy, sortDir: currentSortDir })
-        }
-        
-        // Create a full array with placeholders for proper pagination display
-        const fullArray: ProductRowData[] = []
-        const totalElements = response.data.totalElements
-        const pageSize = response.data.size
-        const currentPageData = response.data.content
-        
-        // Fill the array with actual data and placeholders
-        for (let i = 0; i < totalElements; i++) {
-          const pageIndex = Math.floor(i / pageSize)
-          const indexInPage = i % pageSize
-          
-          if (pageIndex === currentPage && indexInPage < currentPageData.length) {
-            // Current page data
-            fullArray[i] = currentPageData[indexInPage]
-          } else {
-            // Placeholder for other pages
-            fullArray[i] = {
-              id: `placeholder-${i}`,
-              name: '',
-              price: 0,
-              stock: 0
-            }
-          }
-        }
-        
-        setAllProducts(fullArray)
-        
-        // Sync AG Grid pagination with server response
-        if (gridApi) {
-          gridApi.paginationGoToPage(response.data.page)
-        }
       } else {
         setError(response.error || 'Failed to load products')
       }
@@ -220,87 +74,17 @@ export function Products() {
     } finally {
       setLoading(false)
     }
-  }, [pagination.page, pagination.size, sortModel.sortBy, sortModel.sortDir, filters])
+  }, [pagination.size, filters])
 
   useEffect(() => {
-    loadProducts()
-  }, [])
-
-  const onGridReady = useCallback((params: GridReadyEvent) => {
-    setGridApi(params.api)
-  }, [])
-
-  const onPaginationChanged = useCallback((event: PaginationChangedEvent) => {
-    const currentPage = event.api.paginationGetCurrentPage()
-    const pageSize = event.api.paginationGetPageSize()
-    
-    console.log('Pagination changed:', { currentPage, pageSize, statePage: pagination.page, stateSize: pagination.size })
-    
-    // Handle page size changes
-    if (pageSize !== pagination.size) {
-      console.log('Page size changed, loading with new size:', pageSize)
-      loadProducts(0, pageSize) // Reset to first page when page size changes
-      return
-    }
-    
-    // Handle page navigation - only load if we don't have data for that page
-    if (currentPage !== pagination.page) {
-      const startIndex = currentPage * pageSize
-      const hasDataForPage = allProducts.slice(startIndex, startIndex + pageSize).some(item => item.name && !item.id?.startsWith('placeholder-'))
-      
-      if (!hasDataForPage) {
-        console.log('Page navigation, loading page:', currentPage)
-        loadProducts(currentPage)
-      }
-    }
-  }, [loadProducts, pagination.page, pagination.size, allProducts])
-
-  const onSortChanged = useCallback((event: SortChangedEvent) => {
-    const sortModel = event.api.getColumnState().find(col => col.sort)
-    if (sortModel) {
-      const newSortBy = sortModel.colId
-      const newSortDir = sortModel.sort === 'desc' ? 'desc' : 'asc'
-      loadProducts(0, undefined, newSortBy, newSortDir) // Reset to first page when sorting
-    }
+    loadProducts(0, true)
   }, [loadProducts])
-
-  const handleCreate = () => {
-    setEditingProduct(undefined)
-    setIsEdit(false)
-    setModalOpen(true)
-  }
-
-  const handleView = (product: Product) => {
-    // TODO: Implement product details modal
-    console.log('View product details', product)
-  }
-
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product)
-    setIsEdit(true)
-    setModalOpen(true)
-  }
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
-    
-    try {
-      const response = await apiService.deleteProduct(id)
-      if (response.success) {
-        loadProducts()
-      } else {
-        setError(response.error || 'Failed to delete product')
-      }
-    } catch (err) {
-      setError('Failed to delete product')
-    }
-  }
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
     const newFilters = { ...filters, search: query || undefined }
     setFilters(newFilters)
-    loadProducts(0, undefined, undefined, undefined, newFilters) // Reset to first page when searching
+    loadProducts(0, true)
   }, [filters, loadProducts])
 
   const handleClearSearch = useCallback(() => {
@@ -308,38 +92,25 @@ export function Products() {
     const newFilters = { ...filters }
     delete newFilters.search
     setFilters(newFilters)
-    loadProducts(0, undefined, undefined, undefined, newFilters)
+    loadProducts(0, true)
   }, [filters, loadProducts])
 
-  const handleModalClose = () => {
-    setModalOpen(false)
-    setEditingProduct(undefined)
-    setIsEdit(false)
+  const loadMoreProducts = () => {
+    if (pagination.page < pagination.totalPages - 1) {
+      loadProducts(pagination.page + 1, false)
+    }
   }
 
-  const handleModalSubmit = async (data: ProductCreateRequest) => {
-    try {
-      if (isEdit && editingProduct) {
-        const response = await apiService.updateProduct(editingProduct.id, data)
-        if (response.success) {
-          loadProducts()
-          setError(null)
-        } else {
-          setError(response.error || 'Failed to update product')
-        }
-      } else {
-        const response = await apiService.createProduct(data)
-        if (response.success) {
-          loadProducts()
-          setError(null)
-        } else {
-          setError(response.error || 'Failed to create product')
-        }
-      }
-    } catch (err) {
-      setError('Failed to save product')
-      throw err
-    }
+  const handleAddToCart = (product: Product, quantity = 1) => {
+    addItem(product, quantity)
+  }
+
+  const handleRemoveFromCart = (productId: string) => {
+    removeItem(productId)
+  }
+
+  const handleQuantityChange = (productId: string, quantity: number) => {
+    updateQuantity(productId, quantity)
   }
 
   return (
@@ -348,95 +119,204 @@ export function Products() {
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Products</h2>
-            <p className="text-gray-600">Manage your product catalog and inventory.</p>
+            <p className="text-gray-600">Browse and add products to your cart.</p>
           </div>
-          <Button onClick={handleCreate} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Product
-          </Button>
+          <div className="text-right">
+            <p className="text-sm text-gray-600">
+              Cart: {getTotalItems()} items
+              {isCalculating && <span className="ml-2 text-blue-500">(calculating...)</span>}
+            </p>
+            <p className="text-lg font-semibold text-green-600">${getTotalPrice().toFixed(2)}</p>
+          </div>
         </div>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Product Catalog ({pagination.totalElements} items)
-            </div>
-            <div className="relative max-w-sm">
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Products Section */}
+        <div className="lg:col-span-3">
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
+              <Input
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-10 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
+                className="pl-10 pr-10"
               />
               {searchQuery && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleClearSearch}
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </div>
+
+          {/* Error Message */}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
               {error}
             </div>
           )}
-          
-          <div style={{ height: '600px', width: '100%' }}>
-            <AgGridReact<ProductRowData>
-              theme="legacy"
-              rowData={allProducts}
-              columnDefs={columnDefs}
-              pagination={true}
-              paginationPageSize={pagination.size}
-              paginationPageSizeSelector={[10, 20, 50]}
-              suppressPaginationPanel={false}
-              loading={loading}
-              onGridReady={onGridReady}
-              onPaginationChanged={onPaginationChanged}
-              onSortChanged={onSortChanged}
-              domLayout="normal"
-              suppressRowClickSelection={true}
-              enableCellTextSelection={true}
-              ensureDomOrder={true}
-              suppressMenuHide={true}
-              rowHeight={50}
-              rowModelType="clientSide"
-              className="ag-theme-alpine"
-            />
-          </div>
-          
-          <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-            <div>
-              Showing {pagination.page * pagination.size + 1} to{' '}
-              {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{' '}
-              {pagination.totalElements} entries
-            </div>
-            <div>
-              {pagination.totalElements} total items
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      <ProductModal
-        open={modalOpen}
-        onClose={handleModalClose}
-        product={editingProduct}
-        onSubmit={handleModalSubmit}
-        isEdit={isEdit}
-      />
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+            {products.map((product) => {
+              const cartQuantity = getItemQuantity(product.id)
+              return (
+                <Card key={product.id} className="h-fit">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold text-sm">{product.name}</h4>
+                      <span className="text-sm font-bold text-green-600">
+                        ${product.price.toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Stock: {product.stock} available
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      {cartQuantity > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(product.id, cartQuantity - 1)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="text-sm font-medium w-8 text-center">
+                            {cartQuantity}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(product.id, cartQuantity + 1)}
+                            disabled={cartQuantity >= product.stock}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddToCart(product)}
+                          disabled={product.stock === 0}
+                          className="flex-1"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add to Cart
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* Load More Button */}
+          {pagination.page < pagination.totalPages - 1 && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                onClick={loadMoreProducts}
+                disabled={loading}
+              >
+                {loading ? 'Loading...' : 'Load More Products'}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Cart Sidebar */}
+        <div className="lg:col-span-1">
+          <Card className="sticky top-4">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-lg">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  Cart
+                </div>
+                <span className="text-sm font-normal">
+                  {getTotalItems()} items
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                  <Package className="w-8 h-8 mb-2" />
+                  <p className="text-sm text-center">Your cart is empty</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <div key={item.product.id} className="flex justify-between items-center p-3 border rounded">
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-medium text-sm truncate">{item.product.name}</h5>
+                        <p className="text-xs text-gray-600">
+                          ${item.product.price.toFixed(2)} × {item.quantity}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2">
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(item.product.id, item.quantity - 1)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="text-xs w-8 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
+                            disabled={item.quantity >= item.product.stock}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveFromCart(item.product.id)}
+                          className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="pt-3 border-t">
+                    <div className="flex justify-between items-center text-lg font-semibold">
+                      <span>Total:</span>
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="w-4 h-4" />
+                        {getTotalPrice().toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   )
 }

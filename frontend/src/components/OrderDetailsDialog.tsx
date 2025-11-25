@@ -3,6 +3,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
@@ -47,6 +48,9 @@ export function OrderDetailsDialog({ open, onClose, order }: OrderDetailsDialogP
             <Package className="w-5 h-5" />
             Order Details
           </DialogTitle>
+          <DialogDescription>
+            View complete order information including items, pricing, and order status.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto min-h-0">
@@ -114,7 +118,7 @@ export function OrderDetailsDialog({ open, onClose, order }: OrderDetailsDialogP
                 {order.orderItems.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-lg">{item.product.name}</h4>
+                      <h4 className="font-semibold text-lg">{item.productName}</h4>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1">
                           <span className="text-sm text-gray-500">Unit Price:</span>
@@ -127,14 +131,14 @@ export function OrderDetailsDialog({ open, onClose, order }: OrderDetailsDialogP
                         <div className="flex items-center gap-1">
                           <span className="text-sm text-gray-500">Product ID:</span>
                           <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                            {item.product.id.slice(-8)}
+                            {item.productId.slice(-8)}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right ml-4">
                       <div className="text-sm text-gray-500">Subtotal</div>
-                      <div className="font-bold text-lg">{formatCurrency(item.unitPrice * item.quantity)}</div>
+                      <div className="font-bold text-lg">{formatCurrency(item.itemTotal)}</div>
                     </div>
                   </div>
                 ))}

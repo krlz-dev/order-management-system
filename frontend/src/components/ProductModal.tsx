@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -104,6 +105,9 @@ export function ProductModal({ open, onClose, product, onSubmit, isEdit = false 
           <DialogTitle>
             {isEdit ? 'Edit Product' : 'Add New Product'}
           </DialogTitle>
+          <DialogDescription>
+            {isEdit ? 'Update the product information below.' : 'Enter the details for the new product.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
