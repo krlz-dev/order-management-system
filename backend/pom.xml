@@ -100,6 +100,25 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			
+			<!-- Surefire Plugin for better test reporting -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.5.4</version>
+				<configuration>
+					<!-- Show individual test methods as they run -->
+					<printSummary>true</printSummary>
+					<reportFormat>plain</reportFormat>
+					<useFile>false</useFile>
+					<trimStackTrace>false</trimStackTrace>
+					<includes>
+						<include>**/*Test.java</include>
+						<include>**/*Tests.java</include>
+						<include>**/*TestCase.java</include>
+					</includes>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
