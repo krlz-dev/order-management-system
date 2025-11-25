@@ -1,14 +1,26 @@
 import { useState, useMemo } from 'react'
-import { AgGridReact } from 'ag-grid-react'
-import { ModuleRegistry, AllCommunityModule } from 'ag-grid-community'
-import type { ColDef, PaginationChangedEvent, SortChangedEvent, GridReadyEvent } from 'ag-grid-community'
-import 'ag-grid-community/styles/ag-grid.css'
-import 'ag-grid-community/styles/ag-theme-alpine.css'
-
-// Register AG Grid modules
-ModuleRegistry.registerModules([AllCommunityModule])
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type ColumnFiltersState
+} from '@tanstack/react-table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -16,22 +28,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { ShoppingCart, Eye, MoreVertical, Download, RefreshCw } from 'lucide-react'
+import { ShoppingCart, Eye, MoreVertical, Download, RefreshCw, Search, X, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import type { Order } from '@/types'
 import { OrderDetailsDialog } from '@/components/OrderDetailsDialog'
 import { useOrders } from '@/hooks/useOrders'
 
-interface OrderRowData extends Order {
-  actions?: string
-}
+const columnHelper = createColumnHelper<Order>()
 
 export function MyOrders() {
   // Local state for UI controls
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'createdAt', desc: true }
+  ])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = useState('')
   const [queryParams, setQueryParams] = useState({
     page: 0,
     size: 10,
     sortBy: 'createdAt',
-    sortDir: 'desc' as 'asc' | 'desc'
+    sortDir: 'desc' as 'asc' | 'desc',
+    search: undefined as string | undefined
   })
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -43,72 +60,111 @@ export function MyOrders() {
     isLoading,
     error,
     refetch,
-    createOrder,
-    isCreating,
+    // createOrder,
+    // isCreating,
     createError
   } = useOrders(queryParams)
 
-  // Combine all errors
-  const allErrors = [error, createError].filter(Boolean).join(', ')
-
-  const columnDefs = useMemo<ColDef<OrderRowData>[]>(() => [
-    {
-      headerName: 'Order ID',
-      field: 'id',
-      sortable: true,
-      filter: true,
-      flex: 2,
-      minWidth: 200,
-      valueFormatter: (params) => params.value ? `#${params.value.slice(-8)}` : ''
-    },
-    {
-      headerName: 'Total Price',
-      field: 'totalPrice',
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-      flex: 1,
-      minWidth: 120,
-      valueFormatter: (params) => `$${params.value?.toFixed(2) || '0.00'}`
-    },
-    {
-      headerName: 'Total Items',
-      field: 'totalItems',
-      sortable: true,
-      filter: 'agNumberColumnFilter',
-      flex: 1,
-      minWidth: 100,
-      valueFormatter: (params) => params.value?.toString() || '0'
-    },
-    {
-      headerName: 'Order Date',
-      field: 'createdAt',
-      sortable: true,
-      filter: 'agDateColumnFilter',
-      flex: 2,
-      minWidth: 180,
-      valueFormatter: (params) => {
-        if (!params.value) return ''
-        return new Date(params.value).toLocaleString()
+  // Define table columns
+  const columns = useMemo(() => [
+    columnHelper.accessor('id', {
+      header: 'Order ID',
+      cell: ({ row }) => {
+        const id = row.getValue('id') as string
+        return <div className="font-medium">#{id ? id.slice(-8) : ''}</div>
       }
-    },
-    {
-      headerName: 'Products',
-      field: 'orderItems',
-      sortable: false,
-      filter: false,
-      flex: 3,
-      minWidth: 200,
-      cellRenderer: (params: any) => {
-        if (!params.value || !Array.isArray(params.value)) return ''
+    }),
+    columnHelper.accessor('totalPrice', {
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="p-0 h-auto font-semibold hover:bg-transparent"
+          >
+            Total Price
+            {column.getIsSorted() === 'asc' ? (
+              <ChevronUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === 'desc' ? (
+              <ChevronDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ChevronsUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('totalPrice'))
+        const formatted = new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(amount)
+        return <div>{formatted}</div>
+      },
+    }),
+    columnHelper.accessor('totalItems', {
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="p-0 h-auto font-semibold hover:bg-transparent"
+          >
+            Items
+            {column.getIsSorted() === 'asc' ? (
+              <ChevronUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === 'desc' ? (
+              <ChevronDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ChevronsUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const items = row.getValue('totalItems') as number
+        return <div className="font-medium">{items || 0}</div>
+      },
+    }),
+    columnHelper.accessor('createdAt', {
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="p-0 h-auto font-semibold hover:bg-transparent"
+          >
+            Order Date
+            {column.getIsSorted() === 'asc' ? (
+              <ChevronUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === 'desc' ? (
+              <ChevronDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ChevronsUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const date = row.getValue('createdAt') as string
+        if (!date) return ''
+        return <div>{new Date(date).toLocaleString()}</div>
+      },
+    }),
+    columnHelper.accessor('orderItems', {
+      header: 'Products',
+      cell: ({ row }) => {
+        const items = row.getValue('orderItems') as any[]
+        if (!items || !Array.isArray(items)) return ''
         
-        const products = params.value
-          .map((item: any) => `${item.productName || 'Unknown'} (${item.quantity})`)
+        const products = items
+          .map((item: any) => `${item.product?.name || item.productName || 'Unknown'} (${item.quantity || 0})`)
           .join(', ')
         
         const maxLength = 50
         if (products.length > maxLength) {
           return (
-            <div className="flex items-center h-full">
+            <div className="flex items-center">
               <span title={products}>
                 {products.substring(0, maxLength)}...
               </span>
@@ -116,45 +172,37 @@ export function MyOrders() {
           )
         }
         
-        return (
-          <div className="flex items-center h-full">
-            <span>{products}</span>
-          </div>
-        )
+        return <div>{products}</div>
       }
-    },
-    {
-      headerName: 'Actions',
-      field: 'actions',
-      sortable: false,
-      filter: false,
-      flex: 1,
-      minWidth: 80,
-      cellRenderer: (params: any) => {
+    }),
+    columnHelper.display({
+      id: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => {
+        const order = row.original
         return (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   className="h-8 w-8 p-0 hover:bg-gray-100"
-                  onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="h-4 w-4" />
                   <span className="sr-only">Open menu</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[180px]">
-                <DropdownMenuItem onClick={() => handleViewDetails(params.data)}>
+                <DropdownMenuItem onClick={() => handleViewDetails(order)}>
                   <Eye className="mr-2 h-4 w-4" />
                   View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleDownloadInvoice(params.data)}>
+                <DropdownMenuItem onClick={() => handleDownloadInvoice(order)}>
                   <Download className="mr-2 h-4 w-4" />
                   Download Invoice
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleRefreshOrder(params.data.id)}>
+                <DropdownMenuItem onClick={() => handleRefreshOrder(order.id)}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh Status
                 </DropdownMenuItem>
@@ -162,50 +210,76 @@ export function MyOrders() {
             </DropdownMenu>
           </div>
         )
-      }
-    }
+      },
+    }),
   ], [])
 
+  // Create table instance
+  const table = useReactTable({
+    data: orders || [],
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+      pagination: {
+        pageIndex: queryParams.page,
+        pageSize: queryParams.size,
+      },
+    },
+    manualPagination: true,
+    pageCount: Math.ceil((pagination?.totalElements || 0) / queryParams.size),
+  })
 
-  const onGridReady = () => {
-    // Grid ready handler - no longer needed for pagination sync
+  // Combine all errors
+  const allErrors = [error, createError].filter(Boolean).join(', ')
+
+
+  // Handle pagination changes
+  const handlePageChange = (newPage: number) => {
+    setQueryParams(prev => ({
+      ...prev,
+      page: newPage
+    }))
   }
 
-  const onPaginationChanged = (event: PaginationChangedEvent) => {
-    const currentPage = event.api.paginationGetCurrentPage()
-    const pageSize = event.api.paginationGetPageSize()
-    
-    // Handle page size changes
-    if (pageSize !== queryParams.size) {
-      setQueryParams(prev => ({
-        ...prev,
-        page: 0, // Reset to first page when page size changes
-        size: pageSize
-      }))
-      return
-    }
-    
-    // Handle page navigation
-    if (currentPage !== queryParams.page) {
-      setQueryParams(prev => ({
-        ...prev,
-        page: currentPage
-      }))
-    }
+  const handlePageSizeChange = (newSize: number) => {
+    setQueryParams(prev => ({
+      ...prev,
+      page: 0,
+      size: newSize
+    }))
   }
 
-  const onSortChanged = (event: SortChangedEvent) => {
-    const sortModel = event.api.getColumnState().find(col => col.sort)
-    if (sortModel) {
-      const newSortBy = sortModel.colId
-      const newSortDir = sortModel.sort === 'desc' ? 'desc' : 'asc'
-      setQueryParams(prev => ({
-        ...prev,
-        page: 0, // Reset to first page when sorting
-        sortBy: newSortBy,
-        sortDir: newSortDir
-      }))
-    }
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    setGlobalFilter(query)
+    setQueryParams(prev => ({
+      ...prev,
+      page: 0, // Reset to first page when searching
+      search: query || undefined
+    }))
+  }
+
+  const handleClearSearch = () => {
+    setSearchQuery('')
+    setGlobalFilter('')
+    setQueryParams(prev => {
+      const newParams = { ...prev }
+      delete newParams.search
+      return {
+        ...newParams,
+        page: 0
+      }
+    })
   }
 
 
@@ -237,9 +311,31 @@ export function MyOrders() {
       
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5" />
-            Order Management ({pagination?.totalElements || 0} orders)
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Order Management ({pagination?.totalElements || 0} orders)
+            </div>
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                type="text"
+                placeholder="Search orders..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearSearch}
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -249,47 +345,137 @@ export function MyOrders() {
             </div>
           )}
           
-          <div style={{ height: '600px', width: '100%' }}>
-            <AgGridReact<OrderRowData>
-              theme="legacy"
-              rowData={orders}
-              columnDefs={columnDefs}
-              pagination={true}
-              paginationPageSize={pagination?.size || 10}
-              paginationPageSizeSelector={[10, 20, 50]}
-              suppressPaginationPanel={false}
-              loading={isLoading || isCreating}
-              onGridReady={onGridReady}
-              onPaginationChanged={onPaginationChanged}
-              onSortChanged={onSortChanged}
-              domLayout="normal"
-              suppressRowClickSelection={true}
-              enableCellTextSelection={true}
-              ensureDomOrder={true}
-              suppressMenuHide={true}
-              rowHeight={60}
-              rowModelType="clientSide"
-              suppressServerSideInfiniteScroll={true}
-              paginationAutoPageSize={false}
-              rowBuffer={0}
-              className="ag-theme-alpine"
-              // Force AG Grid to show correct total rows for server-side pagination
-              rowCount={pagination?.totalElements || 0}
-            />
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead key={header.id}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      )
+                    })}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      Loading...
+                    </TableCell>
+                  </TableRow>
+                ) : table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() && "selected"}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                      No results.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
           
-          <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
-            <div>
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between space-x-2 py-4">
+            <div className="text-sm text-muted-foreground">
               {pagination && (
-                <>
-                  Showing {pagination.page * pagination.size + 1} to{' '}
-                  {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{' '}
-                  {pagination.totalElements} entries
-                </>
+                <>Showing {pagination.page * pagination.size + 1} to{' '}
+                {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{' '}
+                {pagination.totalElements} entries</>
               )}
             </div>
-            <div>
-              {pagination?.totalElements || 0} total orders
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium">Rows per page</p>
+                <select
+                  value={queryParams.size}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="h-8 w-[70px] rounded border border-input bg-background px-3 py-0 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <option key={pageSize} value={pageSize}>
+                      {pageSize}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                Page {pagination ? pagination.page + 1 : 1} of{" "}
+                {pagination ? Math.ceil(pagination.totalElements / pagination.size) : 1}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handlePageChange(0)}
+                  disabled={!pagination || pagination.page === 0}
+                >
+                  <span className="sr-only">Go to first page</span>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.85355 3.14645C7.04882 3.34171 7.04882 3.65829 6.85355 3.85355L3.70711 7H12.5C12.7761 7 13 7.22386 13 7.5C13 7.77614 12.7761 8 12.5 8H3.70711L6.85355 11.1464C7.04882 11.3417 7.04882 11.6583 6.85355 11.8536C6.65829 12.0488 6.34171 12.0488 6.14645 11.8536L2.14645 7.85355C1.95118 7.65829 1.95118 7.34171 2.14645 7.14645L6.14645 3.14645C6.34171 2.95118 6.65829 2.95118 6.85355 3.14645Z" fill="currentColor"></path>
+                  </svg>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handlePageChange(Math.max(0, queryParams.page - 1))}
+                  disabled={!pagination || pagination.page === 0}
+                >
+                  <span className="sr-only">Go to previous page</span>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor"></path>
+                  </svg>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handlePageChange(Math.min(
+                    Math.ceil((pagination?.totalElements || 0) / queryParams.size) - 1,
+                    queryParams.page + 1
+                  ))}
+                  disabled={!pagination || queryParams.page >= Math.ceil(pagination.totalElements / pagination.size) - 1}
+                >
+                  <span className="sr-only">Go to next page</span>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6.1584 3.13508C6.35985 2.94621 6.67627 2.95642 6.86514 3.15788L10.6151 7.15788C10.7954 7.3502 10.7954 7.64949 10.6151 7.84182L6.86514 11.8418C6.67627 12.0433 6.35985 12.0535 6.1584 11.8646C5.95694 11.6757 5.94673 11.3593 6.1356 11.1579L9.565 7.49985L6.1356 3.84182C5.94673 3.64036 5.95694 3.32394 6.1584 3.13508Z" fill="currentColor"></path>
+                  </svg>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handlePageChange(Math.ceil((pagination?.totalElements || 0) / queryParams.size) - 1)}
+                  disabled={!pagination || queryParams.page >= Math.ceil(pagination.totalElements / pagination.size) - 1}
+                >
+                  <span className="sr-only">Go to last page</span>
+                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2.14645 11.1464C1.95118 10.9512 1.95118 10.6346 2.14645 10.4393L5.29289 7.29289C5.68342 6.90237 6.31658 6.90237 6.70711 7.29289L9.85355 10.4393C10.0488 10.6346 10.0488 10.9512 9.85355 11.1464C9.65829 11.3417 9.34171 11.3417 9.14645 11.1464L6.70711 8.70711C6.31658 8.31658 5.68342 8.31658 5.29289 8.70711L2.85355 11.1464C2.65829 11.3417 2.34171 11.3417 2.14645 11.1464Z" fill="currentColor"></path>
+                  </svg>
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

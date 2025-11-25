@@ -1,4 +1,4 @@
-import type { Product, ProductCreateRequest, Order, OrderCreateRequest, PageResponse, ProductFilters, PaginationParams, CartCalculationRequest, CartCalculationResponse } from '@/types'
+import type { Product, ProductCreateRequest, Order, PageResponse, ProductFilters, PaginationParams, CartCalculationRequest, CartCalculationResponse } from '@/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
@@ -53,7 +53,7 @@ class ApiService {
       
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string> || {}),
       }
 
       // Add auth headers if required or if token is available

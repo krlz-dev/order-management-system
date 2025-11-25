@@ -20,8 +20,8 @@ export function Login() {
       const response = await apiService.login(email, password)
       
       if (response.success && response.data) {
-        const { accessToken, user } = response.data
-        setAuth(accessToken, user)
+        const { accessToken, refreshToken, expiresIn, user } = response.data
+        setAuth(accessToken, refreshToken, expiresIn, user)
       } else {
         setError(response.error || 'Login failed')
       }

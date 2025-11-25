@@ -118,27 +118,31 @@ export function OrderDetailsDialog({ open, onClose, order }: OrderDetailsDialogP
                 {order.orderItems.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
                     <div className="flex-1">
-                      <h4 className="font-semibold text-lg">{item.productName}</h4>
+                      <h4 className="font-semibold text-lg">
+                        {item.product?.name || item.productName || 'Unknown Product'}
+                      </h4>
                       <div className="flex items-center gap-4 mt-2">
                         <div className="flex items-center gap-1">
                           <span className="text-sm text-gray-500">Unit Price:</span>
-                          <span className="font-medium">{formatCurrency(item.unitPrice)}</span>
+                          <span className="font-medium">{formatCurrency(item.unitPrice || 0)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-sm text-gray-500">Quantity:</span>
-                          <span className="font-medium">{item.quantity}</span>
+                          <span className="font-medium">{item.quantity || 0}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-sm text-gray-500">Product ID:</span>
                           <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                            {item.productId.slice(-8)}
+                            {(item.product?.id || item.productId || '').slice(-8) || 'N/A'}
                           </span>
                         </div>
                       </div>
                     </div>
                     <div className="text-right ml-4">
                       <div className="text-sm text-gray-500">Subtotal</div>
-                      <div className="font-bold text-lg">{formatCurrency(item.itemTotal)}</div>
+                      <div className="font-bold text-lg">
+                        {formatCurrency((item.unitPrice || 0) * (item.quantity || 0))}
+                      </div>
                     </div>
                   </div>
                 ))}

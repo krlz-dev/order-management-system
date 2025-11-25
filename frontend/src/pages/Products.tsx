@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { apiService } from '@/services/api'
 import { useCart } from '@/hooks/useCart'
-import type { Product, PageResponse, ProductFilters } from '@/types'
+import type { Product, ProductFilters } from '@/types'
 
 export function Products() {
   const [products, setProducts] = useState<Product[]>([])
@@ -57,7 +57,7 @@ export function Products() {
         if (resetProducts || page === 0) {
           setProducts(response.data.content)
         } else {
-          setProducts(prev => [...prev, ...response.data.content])
+          setProducts(prev => [...prev, ...response.data!.content])
         }
         
         setPagination({

@@ -13,7 +13,9 @@ export interface ProductCreateRequest {
 
 export interface OrderItem {
   id: string
-  product: Product
+  product?: Product
+  productId?: string
+  productName?: string
   quantity: number
   unitPrice: number
 }
@@ -22,6 +24,7 @@ export interface Order {
   id: string
   orderItems: OrderItem[]
   totalPrice: number
+  totalItems: number
   createdAt: string
 }
 
