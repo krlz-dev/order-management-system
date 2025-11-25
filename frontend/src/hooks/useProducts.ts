@@ -7,11 +7,13 @@ interface UseProductsParams {
   size: number
   sortBy?: string
   sortDir?: 'asc' | 'desc'
-  filters?: ProductFilters
+  search?: string
 }
 
 export function useProducts(params: UseProductsParams) {
   const queryClient = useQueryClient()
+
+  console.log('🔥 useProducts called with params:', params)
 
   const {
     data: productsData,
@@ -20,7 +22,10 @@ export function useProducts(params: UseProductsParams) {
     refetch
   } = useQuery({
     queryKey: ['products', params],
-    queryFn: () => apiService.getProducts(params),
+    queryFn: () => {
+      console.log('🔥 API call with params:', params)
+      return apiService.getProducts(params)
+    },
     select: (data) => data.success ? data.data : null,
   })
 

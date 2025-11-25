@@ -102,30 +102,6 @@ export function MyOrders() {
         return <div>{formatted}</div>
       },
     }),
-    columnHelper.accessor('totalItems', {
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="p-0 h-auto font-semibold hover:bg-transparent"
-          >
-            Items
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ChevronsUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        )
-      },
-      cell: ({ row }) => {
-        const items = row.getValue('totalItems') as number
-        return <div className="font-medium">{items || 0}</div>
-      },
-    }),
     columnHelper.accessor('createdAt', {
       header: ({ column }) => {
         return (
@@ -214,16 +190,44 @@ export function MyOrders() {
     }),
   ], [])
 
+  // Handle sorting changes
+  const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
+    // Handle the updater function case
+    let newSorting: SortingState
+    if (typeof updaterOrValue === 'function') {
+      newSorting = updaterOrValue(sorting)
+    } else {
+      newSorting = updaterOrValue
+    }
+    
+    setSorting(newSorting)
+    
+    if (newSorting.length > 0 && newSorting[0]) {
+      const sort = newSorting[0]
+      setQueryParams(prev => ({
+        ...prev,
+        page: 0, // Reset to first page when sorting
+        sortBy: sort.id,
+        sortDir: sort.desc ? 'desc' : 'asc'
+      }))
+    } else {
+      setQueryParams(prev => ({
+        ...prev,
+        page: 0,
+        sortBy: 'createdAt',
+        sortDir: 'desc'
+      }))
+    }
+  }
+
   // Create table instance
   const table = useReactTable({
     data: orders || [],
     columns,
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: 'includesString',
     state: {
@@ -236,12 +240,12 @@ export function MyOrders() {
       },
     },
     manualPagination: true,
+    manualSorting: true,
     pageCount: Math.ceil((pagination?.totalElements || 0) / queryParams.size),
   })
 
   // Combine all errors
   const allErrors = [error, createError].filter(Boolean).join(', ')
-
 
   // Handle pagination changes
   const handlePageChange = (newPage: number) => {
@@ -367,11 +371,16 @@ export function MyOrders() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
+                  // Loading skeleton rows
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-8 bg-gray-200 rounded animate-pulse w-8"></div></TableCell>
+                    </TableRow>
+                  ))
                 ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow

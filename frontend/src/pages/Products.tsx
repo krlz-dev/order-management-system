@@ -116,18 +116,9 @@ export function Products() {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Products</h2>
-            <p className="text-gray-600">Browse and add products to your cart.</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">
-              Cart: {getTotalItems()} items
-              {isCalculating && <span className="ml-2 text-blue-500">(calculating...)</span>}
-            </p>
-            <p className="text-lg font-semibold text-green-600">${getTotalPrice().toFixed(2)}</p>
-          </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Products</h2>
+          <p className="text-gray-600">Browse and add products to your cart.</p>
         </div>
       </div>
 
@@ -167,62 +158,78 @@ export function Products() {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-            {products.map((product) => {
-              const cartQuantity = getItemQuantity(product.id)
-              return (
-                <Card key={product.id} className="h-fit">
+            {loading && products.length === 0 ? (
+              // Loading skeletons
+              Array.from({ length: 6 }).map((_, index) => (
+                <Card key={index} className="h-fit">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-semibold text-sm">{product.name}</h4>
-                      <span className="text-sm font-bold text-green-600">
-                        ${product.price.toFixed(2)}
-                      </span>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse flex-1 mr-2"></div>
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
                     </div>
-                    <p className="text-xs text-gray-600 mb-3">
-                      Stock: {product.stock} available
-                    </p>
-                    
-                    <div className="flex items-center justify-between">
-                      {cartQuantity > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityChange(product.id, cartQuantity - 1)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="text-sm font-medium w-8 text-center">
-                            {cartQuantity}
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuantityChange(product.id, cartQuantity + 1)}
-                            disabled={cartQuantity >= product.stock}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddToCart(product)}
-                          disabled={product.stock === 0}
-                          className="flex-1"
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add to Cart
-                        </Button>
-                      )}
-                    </div>
+                    <div className="h-3 bg-gray-200 rounded animate-pulse mb-3 w-24"></div>
+                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
                   </CardContent>
                 </Card>
-              )
-            })}
+              ))
+            ) : (
+              products.map((product) => {
+                const cartQuantity = getItemQuantity(product.id)
+                return (
+                  <Card key={product.id} className="h-fit">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-sm">{product.name}</h4>
+                        <span className="text-sm font-bold text-green-600">
+                          ${product.price.toFixed(2)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-3">
+                        Stock: {product.stock} available
+                      </p>
+                      
+                      <div className="flex items-center justify-between">
+                        {cartQuantity > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuantityChange(product.id, cartQuantity - 1)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-medium w-8 text-center">
+                              {cartQuantity}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuantityChange(product.id, cartQuantity + 1)}
+                              disabled={cartQuantity >= product.stock}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddToCart(product)}
+                            disabled={product.stock === 0}
+                            className="flex-1"
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add to Cart
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
           </div>
 
           {/* Load More Button */}
@@ -241,7 +248,7 @@ export function Products() {
 
         {/* Cart Sidebar */}
         <div className="lg:col-span-1">
-          <Card className="sticky top-4">
+          <Card className="sticky top-20">
             <CardHeader>
               <CardTitle className="flex items-center justify-between text-lg">
                 <div className="flex items-center gap-2">
@@ -307,7 +314,7 @@ export function Products() {
                       <span>Total:</span>
                       <span className="flex items-center gap-1">
                         <DollarSign className="w-4 h-4" />
-                        {getTotalPrice().toFixed(2)}
+                        {isCalculating ? 'calculating...' : getTotalPrice().toFixed(2)}
                       </span>
                     </div>
                   </div>

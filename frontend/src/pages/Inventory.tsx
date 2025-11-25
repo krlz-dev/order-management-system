@@ -197,34 +197,67 @@ export function Inventory() {
     }),
   ], [])
 
+  // Handle sorting changes
+  const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
+    console.log('🔥 SORTING CHANGE TRIGGERED:', updaterOrValue)
+    
+    // Handle the updater function case
+    let newSorting: SortingState
+    if (typeof updaterOrValue === 'function') {
+      newSorting = updaterOrValue(sorting)
+      console.log('🔥 COMPUTED NEW SORTING:', newSorting)
+    } else {
+      newSorting = updaterOrValue
+    }
+    
+    setSorting(newSorting)
+    
+    if (newSorting.length > 0 && newSorting[0]) {
+      const sort = newSorting[0]
+      console.log('🔥 SORT OBJECT:', sort)
+      console.log('🔥 SORT ID:', sort.id, 'DESC:', sort.desc)
+      const newParams = {
+        ...queryParams,
+        page: 0, // Reset to first page when sorting
+        sortBy: sort.id,
+        sortDir: sort.desc ? 'desc' : 'asc'
+      }
+      console.log('🔥 NEW QUERY PARAMS:', newParams)
+      setQueryParams(newParams)
+    } else {
+      console.log('🔥 NO SORTING - RESETTING TO DEFAULT')
+      setQueryParams(prev => ({
+        ...prev,
+        page: 0,
+        sortBy: 'name',
+        sortDir: 'asc'
+      }))
+    }
+  }
+
   // Create table instance
   const table = useReactTable({
     data: products || [],
     columns,
-    onSortingChange: setSorting,
+    onSortingChange: handleSortingChange,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: 'includesString',
     state: {
       sorting,
       columnFilters,
-      globalFilter,
       pagination: {
         pageIndex: queryParams.page,
         pageSize: queryParams.size,
       },
     },
     manualPagination: true,
+    manualSorting: true,
     pageCount: Math.ceil((pagination?.totalElements || 0) / queryParams.size),
   })
 
   // Combine all errors
   const allErrors = [error, createError, updateError, deleteError].filter(Boolean).join(', ')
-
 
   // Handle pagination changes
   const handlePageChange = (newPage: number) => {
@@ -271,7 +304,6 @@ export function Inventory() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    setGlobalFilter(query)
     setQueryParams(prev => ({
       ...prev,
       page: 0, // Reset to first page when searching
@@ -281,7 +313,6 @@ export function Inventory() {
 
   const handleClearSearch = () => {
     setSearchQuery('')
-    setGlobalFilter('')
     setQueryParams(prev => {
       const newParams = { ...prev }
       delete newParams.search
@@ -386,11 +417,15 @@ export function Inventory() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
-                      Loading...
-                    </TableCell>
-                  </TableRow>
+                  // Loading skeleton rows
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-8 bg-gray-200 rounded animate-pulse w-8"></div></TableCell>
+                    </TableRow>
+                  ))
                 ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
