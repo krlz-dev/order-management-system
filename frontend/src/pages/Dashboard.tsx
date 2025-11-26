@@ -12,8 +12,23 @@ import {
   TrendingUp, 
   AlertTriangle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  BarChart3
 } from 'lucide-react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts'
 
 export function Dashboard() {
   const { 
@@ -89,6 +104,31 @@ export function Dashboard() {
     const topProducts = Object.values(productSales)
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5)
+
+    // Chart data for sales over time (last 7 days)
+    const salesData: Array<{ date: string; revenue: number; orders: number }> = []
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date()
+      date.setDate(date.getDate() - i)
+      const dayOrders = orders.filter(order => {
+        const orderDate = new Date(order.createdAt)
+        return orderDate.toDateString() === date.toDateString()
+      })
+      const dayRevenue = dayOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0)
+      
+      salesData.push({
+        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        revenue: dayRevenue,
+        orders: dayOrders.length
+      })
+    }
+
+    // Stock level distribution data
+    const stockData = [
+      { name: 'Low Stock (≤10)', value: products.filter(p => p.stock <= 10).length, color: 'hsl(var(--destructive))' },
+      { name: 'Medium Stock (11-50)', value: products.filter(p => p.stock > 10 && p.stock <= 50).length, color: 'hsl(var(--primary-400))' },
+      { name: 'High Stock (>50)', value: products.filter(p => p.stock > 50).length, color: 'hsl(var(--primary-600))' }
+    ]
     
     return {
       totalRevenue,
@@ -97,7 +137,9 @@ export function Dashboard() {
       lowStockProducts,
       recentOrders,
       averageOrderValue,
-      topProducts
+      topProducts,
+      salesData,
+      stockData
     }
   }, [orders, products, ordersPagination, productsPagination])
   
@@ -146,11 +188,11 @@ export function Dashboard() {
 
   if (ordersLoading || productsLoading) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading dashboard data...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading dashboard data...</p>
           </div>
         </div>
       </div>
@@ -158,82 +200,124 @@ export function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
+    <div className="max-w-7xl mx-auto p-6 space-y-8">
+      <div className="border-b border-border pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h2>
-            <p className="text-gray-600">Real-time insights into your business performance and inventory.</p>
+            <h1 className="text-2xl font-semibold text-foreground mb-2">Dashboard</h1>
+            <p className="text-muted-foreground">Monitor your business performance and inventory status.</p>
           </div>
           <Button
             onClick={handleRefresh}
             variant="outline"
+            size="sm"
             disabled={ordersLoading || productsLoading}
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${ordersLoading || productsLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            Refresh Data
           </Button>
         </div>
       </div>
       
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="hover:shadow-lg transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* System Status */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">System Status</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className={`w-2 h-2 rounded-full ${!ordersLoading && !productsLoading ? 'bg-primary' : 'bg-muted-foreground'}`}></div>
+                    <p className="text-xs text-muted-foreground">APIs Online</p>
+                  </div>
+                </div>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <Package className="w-5 h-5 text-primary" />
+                </div>
+              </div>
+              <Button 
+                onClick={handlePing} 
+                disabled={isLoading}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs"
+              >
+                {isLoading ? 'Testing...' : 'Test Connection'}
+              </Button>
+              
+              {error && (
+                <div className="bg-yellow-50 text-yellow-700 p-2 rounded text-xs border border-yellow-200">
+                  <strong>Error:</strong> {error}
+                </div>
+              )}
+              
+              {pingResponse && (
+                <div className="bg-primary/10 text-primary p-2 rounded text-xs border border-primary/20">
+                  <strong className="text-primary">✓ Connected</strong>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardMetrics.totalOrders.toLocaleString()}</p>
-                <p className="text-xs text-gray-500 mt-1">All time</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
+                <p className="text-2xl font-semibold text-foreground">{dashboardMetrics.totalOrders.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground mt-1">All time</p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <ShoppingCart className="w-6 h-6 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShoppingCart className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(dashboardMetrics.totalRevenue)}</p>
-                <p className="text-xs text-gray-500 mt-1">All time</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                <p className="text-2xl font-semibold text-foreground">{formatCurrency(dashboardMetrics.totalRevenue)}</p>
+                <p className="text-xs text-muted-foreground mt-1">All time</p>
               </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <DollarSign className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg. Order Value</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(dashboardMetrics.averageOrderValue)}</p>
-                <p className="text-xs text-gray-500 mt-1">Per order</p>
+                <p className="text-sm font-medium text-muted-foreground">Avg. Order Value</p>
+                <p className="text-2xl font-semibold text-foreground">{formatCurrency(dashboardMetrics.averageOrderValue)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Per order</p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-lg transition-shadow">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Products</p>
-                <p className="text-2xl font-bold text-gray-900">{dashboardMetrics.totalProducts}</p>
-                <p className="text-xs text-gray-500 mt-1">In inventory</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-semibold text-foreground">{dashboardMetrics.totalProducts}</p>
+                <p className="text-xs text-muted-foreground mt-1">In inventory</p>
               </div>
-              <div className="p-3 bg-orange-100 rounded-lg">
-                <Package className="w-6 h-6 text-orange-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Package className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
@@ -242,21 +326,21 @@ export function Dashboard() {
       
       {/* Alert Section */}
       {dashboardMetrics.lowStockProducts.length > 0 && (
-        <Card className="mb-8 border-orange-200 bg-orange-50">
+        <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <AlertTriangle className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-yellow-700">
+              <AlertTriangle className="w-4 h-4 text-yellow-600" />
               Low Stock Alert ({dashboardMetrics.lowStockProducts.length} items)
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {dashboardMetrics.lowStockProducts.slice(0, 6).map(product => (
-                <div key={product.id} className="bg-white p-3 rounded-lg border border-orange-200">
+                <div key={product.id} className="bg-card p-3 rounded-lg border">
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="font-medium text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-600">Stock: {product.stock}</p>
+                      <p className="text-xs text-muted-foreground">Stock: {product.stock}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium">{formatCurrency(product.price)}</p>
@@ -268,32 +352,122 @@ export function Dashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Sales Trend Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="w-4 h-4" />
+              Sales Trend (Last 7 Days)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dashboardMetrics.salesData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'calc(var(--radius) - 2px)'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="revenue" 
+                    fill="hsl(var(--primary))"
+                    radius={[2, 2, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stock Distribution Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Package className="w-4 h-4" />
+              Stock Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={dashboardMetrics.stockData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {dashboardMetrics.stockData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'calc(var(--radius) - 2px)'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 space-y-2">
+              {dashboardMetrics.stockData.map((item, index) => (
+                <div key={index} className="flex items-center gap-2 text-sm">
+                  <div 
+                    className="w-3 h-3 rounded-full" 
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-muted-foreground">{item.name}: {item.value}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      {/* Data Tables Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="w-4 h-4" />
               Recent Orders
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {dashboardMetrics.recentOrders.slice(0, 5).map(order => (
-                <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={order.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
                   <div>
                     <p className="font-medium text-sm">#{order.id.slice(-8)}</p>
-                    <p className="text-xs text-gray-600">{formatDate(order.createdAt)}</p>
-                    <p className="text-xs text-blue-600">{order.totalItems || order.orderItems?.length || 0} items</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
+                    <p className="text-xs text-primary">{order.totalItems || order.orderItems?.length || 0} items</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-green-600">{formatCurrency(order.totalPrice)}</p>
+                    <p className="font-semibold text-foreground">{formatCurrency(order.totalPrice)}</p>
                   </div>
                 </div>
               ))}
               {dashboardMetrics.recentOrders.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No recent orders</p>
+                <p className="text-muted-foreground text-center py-4 text-sm">No recent orders</p>
               )}
             </div>
           </CardContent>
@@ -302,84 +476,36 @@ export function Dashboard() {
         {/* Top Selling Products */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="w-4 h-4" />
               Top Selling Products
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {dashboardMetrics.topProducts.slice(0, 5).map((product, index) => (
-                <div key={product.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={product.name} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-bold text-blue-600">
+                    <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-xs font-semibold text-primary">
                       {index + 1}
                     </div>
                     <div>
                       <p className="font-medium text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-600">{product.quantity} sold</p>
+                      <p className="text-xs text-muted-foreground">{product.quantity} sold</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-green-600">{formatCurrency(product.revenue)}</p>
+                    <p className="font-semibold text-foreground">{formatCurrency(product.revenue)}</p>
                   </div>
                 </div>
               ))}
               {dashboardMetrics.topProducts.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No sales data available</p>
+                <p className="text-muted-foreground text-center py-4 text-sm">No sales data available</p>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-      
-      {/* System Status */}
-      <Card className="w-full max-w-lg mx-auto">
-        <CardHeader>
-          <CardTitle className="text-center flex items-center justify-center gap-2">
-            <Package className="w-5 h-5" />
-            System Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <Button 
-              onClick={handlePing} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? 'Testing...' : 'Test Backend Connection'}
-            </Button>
-          </div>
-          
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm border border-red-200">
-              <strong>Error:</strong> {error}
-            </div>
-          )}
-          
-          {pingResponse && (
-            <div className="bg-green-50 text-green-700 p-3 rounded-md text-sm border border-green-200">
-              <strong>✓ Connected:</strong> {pingResponse}
-            </div>
-          )}
-          
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-            <div className="text-center">
-              <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${
-                !ordersLoading ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <p className="text-xs text-gray-600">Orders API</p>
-            </div>
-            <div className="text-center">
-              <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${
-                !productsLoading ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
-              <p className="text-xs text-gray-600">Products API</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

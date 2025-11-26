@@ -407,12 +407,6 @@ function Products() {
                   {totalElements > 0 && ` of ${totalElements}`} products
                 </span>
               </div>
-              {!hasNextPage && displayProducts.length > 0 && (
-                <div className="mt-2 inline-flex items-center gap-1 text-green-600">
-                  <CheckCircle className="h-3 w-3" />
-                  <span className="text-xs">All products loaded</span>
-                </div>
-              )}
             </div>
           )}
 

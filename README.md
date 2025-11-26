@@ -2,15 +2,13 @@
 
 Full-stack order management application built with React and Java.
 
-This application implements **Modern Frontend Architecture** with **Hexagonal Backend Architecture**:
-
 - **Frontend**: Route-based data fetching with TanStack Router loaders
 - **Backend**: Clean layered architecture with dependency inversion
 - **Communication**: RESTful APIs with JWT authentication
 
 ## 🛠️ Technology Stack
 
-### Frontend (Modern React Stack)
+### Frontend (React Stack)
 - **React 19** with latest concurrent features
 - **TypeScript 5.9** for comprehensive type safety
 - **TanStack Router 1.139** for type-safe routing with loaders
@@ -27,22 +25,106 @@ This application implements **Modern Frontend Architecture** with **Hexagonal Ba
 - **Spring Boot 3.x** with enhanced performance and security
 - **Spring Security 6** for JWT-based authentication
 - **Spring Data JPA** for data persistence and transactions
-- **PostgreSQL** for production-ready data storage
+- **H2** development data storage
 - **OpenAPI 3** with Swagger UI for comprehensive API documentation
 - **Maven** for robust dependency management and builds
 
-### Development Tools
-- **SDKMAN** for Java version management
-- **Node.js 18+** and **npm/yarn** for frontend tooling
-- **Git** for version control
+## 🏗️ Application Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                          FRONTEND (React)                      │
+├─────────────────────────────────────────────────────────────────┤
+│  📱 Pages & Routes (TanStack Router)                           │
+│  ├── Dashboard.tsx        → /                                  │
+│  ├── Products.tsx         → /products                          │
+│  ├── Orders.tsx           → /orders                            │
+│  ├── Inventory.tsx        → /inventory                         │
+│  └── Login.tsx            → /login                             │
+│                                                                 │
+│  🧩 Components & UI                                            │
+│  ├── Layout (Header, Sidebar)                                  │
+│  ├── Product Management (Modal, Details)                       │
+│  ├── Order Management (Details Dialog)                         │
+│  └── Cart Management (CartView)                                │
+│                                                                 │
+│  🎛️ State Management                                           │
+│  ├── Zustand Stores (Cart, App, Toast)                         │
+│  ├── TanStack Query (Server State)                             │
+│  └── Custom Hooks (useProducts, useOrders, useCart)            │
+│                                                                 │
+│  🔌 Services                                                   │
+│  └── API Service (Axios + JWT Auth)                            │
+└─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ REST API (JWT Auth)
+                                    │ Port: 3000 ↔ 8080
+                                    │
+┌─────────────────────────────────────────────────────────────────┐
+│                       BACKEND (Spring Boot)                    │
+├─────────────────────────────────────────────────────────────────┤
+│  🎯 Controllers (REST Endpoints)                               │
+│  ├── AuthController       → /api/auth/*                        │
+│  ├── ProductController    → /api/products/*                    │
+│  ├── OrderController      → /api/orders/*                      │
+│  └── PingController       → /api/ping                          │
+│                                                                 │
+│  ⚙️ Services (Business Logic)                                  │
+│  ├── UserService         → Authentication & User Management     │
+│  ├── ProductService      → Product CRUD & Stock Management     │
+│  └── OrderService        → Order Processing & Cart Calculation │
+│                                                                 │
+│  🗃️ Data Layer                                                 │
+│  ├── JPA Repositories (Product, Order, User, Role)             │
+│  ├── JPA Entities (Product, Order, OrderItem, User, Role)      │
+│  └── DTOs (Requests/Responses)                                 │
+│                                                                 │
+│  🔐 Security Layer                                             │
+│  ├── JWT Authentication Filter                                 │
+│  ├── Security Configuration                                    │
+│  └── JWT Utilities                                             │
+└─────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ JPA/Hibernate
+                                    │
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASE (H2 In-Memory)                     │
+├─────────────────────────────────────────────────────────────────┤
+│  📊 Tables                                                     │
+│  ├── users           → User accounts & authentication          │
+│  ├── roles           → User roles (USER, ADMIN)                │
+│  ├── products        → Product catalog & stock                 │
+│  ├── orders          → Order headers                           │
+│  └── order_items     → Order line items                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Key Architecture Patterns
+
+**Frontend (React Ecosystem)**
+- **Routing**: TanStack Router with type-safe route definitions and data loaders
+- **State Management**: Zustand for client state, TanStack Query for server state  
+- **Data Fetching**: Route-based loading with automatic caching and background sync
+- **UI Components**: Radix UI primitives with Tailwind CSS styling
+
+**Backend (Spring Boot)**
+- **Architecture**: Clean layered architecture (Controller → Service → Repository)
+- **Security**: JWT-based stateless authentication with role-based access
+- **Data Access**: Spring Data JPA with automatic query generation
+- **API Design**: RESTful endpoints with OpenAPI documentation
+
+**Communication**
+- **Protocol**: HTTP/HTTPS with JSON payload
+- **Authentication**: JWT tokens with automatic refresh mechanism
+- **CORS**: Configured for local development (localhost:3000 ↔ localhost:8080)
 
 ## 📋 Features
 
 ### 🛒 Product Management
 - ✅ **Full CRUD Operations**: Create, read, update, delete products with validation
 - ✅ **Advanced Product Tables**: Sortable, filterable data tables with pagination
-- ✅ **Stock Management**: Real-time stock tracking with low-stock alerts
-- ✅ **Product Attributes**: UUID-based IDs, names, prices, stock levels
+- ✅ **Stock Management**: Stock tracking with dashboard alerts
+- ✅ **Product Attributes**: UUID-based IDs, names, prices, stock quantities
 
 ### 📦 Order Management  
 - ✅ **Shopping Cart**: Add/remove products with quantity management
@@ -54,79 +136,13 @@ This application implements **Modern Frontend Architecture** with **Hexagonal Ba
 ### 👥 User Management & Authentication
 - ✅ **JWT Authentication**: Secure token-based authentication system
 - ✅ **Role-Based Access**: User roles and permissions management
-- ✅ **Session Management**: Automatic token refresh and validation
-- ✅ **User Profiles**: Complete user information and role management
+- ✅ **User Profiles**: Simple registry of users with some customers to test the solution, not for a production
 
 ### 📊 Dashboard & Analytics
 - ✅ **Real-time Metrics**: Total orders, revenue, and product counts
 - ✅ **Low Stock Alerts**: Automatic inventory monitoring
 - ✅ **Recent Activity**: Latest orders and trending products
 - ✅ **Business Intelligence**: Sales analytics and performance metrics
-
-### 🎨 User Experience
-- ✅ **Responsive Design**: Mobile-first design with Tailwind CSS
-- ✅ **Route-based Data Fetching**: Optimized loading with TanStack Router
-- ✅ **Real-time Updates**: Background synchronization with server
-- ✅ **Error Handling**: Comprehensive error boundaries and user feedback
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-1. **Java 21** (suggestion: install via SDKMAN):
-   ```bash
-   # Install SDKMAN if not already installed
-   curl -s "https://get.sdkman.io" | bash
-   
-   # Install and use Java 21
-   sdk install java 21.0.1-oracle
-   sdk use java 21.0.1-oracle
-   ```
-
-2. **Node.js 18+**:
-   ```bash
-   # Check version
-   node --version
-   npm --version
-   ```
-
-### Backend Setup
-
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-
-2. Install dependencies and run:
-   ```bash
-   ./mvnw clean install
-   ./mvnw spring-boot:run
-   ```
-
-3. The backend will be available at: `http://localhost:8080`
-
-4. API documentation: `http://localhost:8080/swagger-ui.html`
-
-### Frontend Setup
-
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
-
-3. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
 
 **State Management Strategy:**
 - **TanStack Query**: Server state, caching, background updates, and synchronization
@@ -139,22 +155,6 @@ This application implements **Modern Frontend Architecture** with **Hexagonal Ba
 - ✅ **Optimistic updates** and background synchronization  
 - ✅ **Intelligent caching** with automatic invalidation
 - ✅ **Type-safe data loading** with full TypeScript support
-
-## 🧪 Testing
-
-### Backend
-```bash
-cd backend
-./mvnw test
-```
-
-### Frontend
-```bash
-cd frontend
-npm test
-# or
-yarn test
-```
 
 ## 🔧 Development Commands
 
