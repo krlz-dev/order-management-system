@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
 import { apiService } from '@/services/api'
+import { useToastStore } from '@/store/useToastStore'
 
 interface CartViewProps {
   open: boolean
@@ -30,6 +31,7 @@ interface CartViewProps {
 export function CartView({ open, onClose, onOrderCreated }: CartViewProps) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { addToast } = useToastStore()
 
   const {
     items,
@@ -80,6 +82,12 @@ export function CartView({ open, onClose, onOrderCreated }: CartViewProps) {
       
       if (response.success) {
         clearCart()
+        addToast({
+          type: 'success',
+          title: 'Order Created Successfully!',
+          description: `Your order has been placed successfully. Order ID: ${response.data?.id || 'N/A'}`,
+          duration: 5000
+        })
         onOrderCreated?.()
         onClose()
       } else {
