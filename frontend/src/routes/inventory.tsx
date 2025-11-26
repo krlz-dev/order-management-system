@@ -1,4 +1,4 @@
-import { createFileRoute, useLoaderData } from '@tanstack/react-router'
+import { createFileRoute, useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import {
   useReactTable,
@@ -6,7 +6,6 @@ import {
   getPaginationRowModel,
   flexRender,
   createColumnHelper,
-  type SortingState,
   type ColumnFiltersState
 } from '@tanstack/react-table'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,11 +35,35 @@ import { useProducts } from '@/hooks/useProducts'
 
 const columnHelper = createColumnHelper<Product>()
 
+interface InventorySearch {
+  page?: number
+  size?: number
+  sortBy?: string
+  sortDir?: 'asc' | 'desc'
+  search?: string
+}
+
 export const Route = createFileRoute('/inventory')({
-  loader: ({ context }) => {
+  validateSearch: (search: Record<string, unknown>): InventorySearch => {
+    return {
+      page: Number(search.page) || 0,
+      size: Number(search.size) || 10,
+      sortBy: (search.sortBy as string) || 'name',
+      sortDir: (search.sortDir as 'asc' | 'desc') || 'asc',
+      search: search.search as string | undefined,
+    }
+  },
+  loader: ({ context, search }) => {
+    const params = {
+      page: search?.page ?? 0,
+      size: search?.size ?? 10,
+      sortBy: search?.sortBy ?? 'name',
+      sortDir: search?.sortDir ?? 'asc',
+      search: search?.search
+    }
     return context.queryClient.fetchQuery({
-      queryKey: ['products', { page: 0, size: 10, sortBy: 'name', sortDir: 'asc' }],
-      queryFn: () => apiService.getProducts({ page: 0, size: 10, sortBy: 'name', sortDir: 'asc' }),
+      queryKey: ['products', params],
+      queryFn: () => apiService.getProducts(params),
       staleTime: 0, // force refetch every navigation
     })
   },
@@ -49,10 +72,10 @@ export const Route = createFileRoute('/inventory')({
 
 function Inventory() {
   const initialData = useLoaderData({ from: '/inventory' })
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'name', desc: false }
-  ])
+  const navigate = useNavigate({ from: '/inventory' })
+  const search = useSearch({ from: '/inventory' })
+  
+  const [searchQuery, setSearchQuery] = useState(search?.search || '')
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -62,36 +85,57 @@ function Inventory() {
   const [isEdit, setIsEdit] = useState(false)
 
   const {
+    products,
+    pagination,
+    isLoading,
+    error,
+    refetch,
     createProduct,
     updateProduct,
     deleteProduct,
     createError,
     updateError,
     deleteError
-  } = useProducts({ page: 0, size: 10, sortBy: 'name', sortDir: 'asc' })
+  } = useProducts({
+    page: search?.page ?? 0,
+    size: search?.size ?? 10,
+    sortBy: search?.sortBy ?? 'name',
+    sortDir: search?.sortDir ?? 'asc',
+    search: search?.search
+  })
 
-  const products = initialData?.data?.content || []
-  const pagination = initialData?.data
-  const filteredProducts = globalFilter 
-    ? products.filter((product: any) => 
-        product.name.toLowerCase().includes(globalFilter.toLowerCase())
-      )
-    : products
+  const sorting = useMemo(() => [
+    { id: search?.sortBy || 'name', desc: (search?.sortDir || 'asc') === 'desc' }
+  ], [search?.sortBy, search?.sortDir])
 
-  const columns = useMemo(() => [
+  const columns = [
     columnHelper.accessor('name', {
       header: ({ column }) => {
+        const isCurrentSort = (search?.sortBy || 'name') === 'name'
+        const isDesc = (search?.sortDir || 'asc') === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'asc'
+              navigate({
+                search: (prev) => ({
+                  ...prev,
+                  page: 0,
+                  sortBy: 'name',
+                  sortDir: newSortDir
+                })
+              })
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Name
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -104,17 +148,31 @@ function Inventory() {
     }),
     columnHelper.accessor('price', {
       header: ({ column }) => {
+        const isCurrentSort = (search?.sortBy || 'name') === 'price'
+        const isDesc = (search?.sortDir || 'asc') === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'desc'
+              navigate({
+                search: (prev) => ({
+                  ...prev,
+                  page: 0,
+                  sortBy: 'price',
+                  sortDir: newSortDir
+                })
+              })
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Price
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -132,17 +190,31 @@ function Inventory() {
     }),
     columnHelper.accessor('stock', {
       header: ({ column }) => {
+        const isCurrentSort = (search?.sortBy || 'name') === 'stock'
+        const isDesc = (search?.sortDir || 'asc') === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'desc'
+              navigate({
+                search: (prev) => ({
+                  ...prev,
+                  page: 0,
+                  sortBy: 'stock',
+                  sortDir: newSortDir
+                })
+              })
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Stock
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -198,12 +270,11 @@ function Inventory() {
         )
       },
     }),
-  ], [])
+  ]
 
   const table = useReactTable({
-    data: filteredProducts,
+    data: products || [],
     columns,
-    onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -213,12 +284,17 @@ function Inventory() {
       sorting,
       columnFilters,
       globalFilter,
+      pagination: {
+        pageIndex: search?.page ?? 0,
+        pageSize: search?.size ?? 10,
+      },
     },
-    manualPagination: false,
-    manualSorting: false,
+    manualPagination: true,
+    manualSorting: true,
+    pageCount: pagination?.totalPages || 1,
   })
 
-  const allErrors = [createError, updateError, deleteError].filter(Boolean).join(', ')
+  const allErrors = [error, createError, updateError, deleteError].filter(Boolean).join(', ')
 
   const handleCreate = () => {
     setEditingProduct(undefined)
@@ -242,7 +318,7 @@ function Inventory() {
     
     try {
       await deleteProduct(id)
-      window.location.reload()
+      navigate({ search: (prev) => ({ ...prev }) })
     } catch (err) {
       // Error is handled by the mutation
     }
@@ -251,11 +327,25 @@ function Inventory() {
   const handleSearch = (query: string) => {
     setSearchQuery(query)
     setGlobalFilter(query)
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        page: 0,
+        search: query || undefined
+      })
+    })
   }
 
   const handleClearSearch = () => {
     setSearchQuery('')
     setGlobalFilter('')
+    navigate({
+      search: (prev) => {
+        const newSearch = { ...prev, page: 0 }
+        delete newSearch.search
+        return newSearch
+      }
+    })
   }
 
   const handleModalClose = () => {
@@ -272,9 +362,8 @@ function Inventory() {
         await createProduct(data)
       }
       handleModalClose()
-      window.location.reload()
+      navigate({ search: (prev) => ({ ...prev }) })
     } catch (err) {
-      // Error is handled by the mutations
       throw err
     }
   }
@@ -289,11 +378,12 @@ function Inventory() {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => window.location.reload()}
+              onClick={() => refetch()}
               variant="outline"
+              disabled={isLoading}
               className="flex items-center gap-2"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
             <Button onClick={handleCreate} className="flex items-center gap-2">
@@ -361,7 +451,16 @@ function Inventory() {
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-8 bg-gray-200 rounded animate-pulse w-8"></div></TableCell>
+                    </TableRow>
+                  ))
+                ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -388,30 +487,83 @@ function Inventory() {
             </Table>
           </div>
           
-          {/* Client-side pagination */}
           <div className="flex items-center justify-between space-x-2 py-4">
             <div className="text-sm text-muted-foreground">
-              Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-              {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} of{' '}
-              {table.getFilteredRowModel().rows.length} entries
+              {pagination && (
+                <>Showing {(search?.page ?? 0) * (search?.size ?? 10) + 1} to{' '}
+                {Math.min(((search?.page ?? 0) + 1) * (search?.size ?? 10), pagination.totalElements)} of{' '}
+                {pagination.totalElements} entries</>
+              )}
             </div>
             <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                Next
-              </Button>
+              <div className="flex items-center space-x-2">
+                <p className="text-sm font-medium">Rows per page</p>
+                <select
+                  value={search?.size ?? 10}
+                  onChange={(e) => {
+                    navigate({
+                      search: (prev) => ({
+                        ...prev,
+                        page: 0,
+                        size: Number(e.target.value)
+                      })
+                    })
+                  }}
+                  className="h-8 w-[70px] rounded border border-input bg-background px-3 py-0 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                >
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <option key={pageSize} value={pageSize}>
+                      {pageSize}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                Page {(search?.page ?? 0) + 1} of{" "}
+                {pagination?.totalPages || 1}
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => navigate({ search: (prev) => ({ ...prev, page: 0 }) })}
+                  disabled={!pagination || pagination.first}
+                >
+                  <span className="sr-only">Go to first page</span>
+                  ««
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => navigate({ search: (prev) => ({ ...prev, page: Math.max(0, (prev.page || 0) - 1) }) })}
+                  disabled={!pagination || pagination.first}
+                >
+                  <span className="sr-only">Go to previous page</span>
+                  «
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    navigate({ search: (prev) => ({ ...prev, page: Math.min((pagination?.totalPages || 1) - 1, (prev.page || 0) + 1) }) })
+                  }}
+                  disabled={!pagination || pagination.last}
+                >
+                  <span className="sr-only">Go to next page</span>
+                  »
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => {
+                    navigate({ search: (prev) => ({ ...prev, page: (pagination?.totalPages || 1) - 1 }) })
+                  }}
+                  disabled={!pagination || pagination.last}
+                >
+                  <span className="sr-only">Go to last page</span>
+                  »»
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

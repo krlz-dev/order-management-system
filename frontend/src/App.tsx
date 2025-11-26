@@ -7,28 +7,23 @@ import { Login } from '@/pages'
 import { ToastContainer } from '@/components/ToastContainer'
 import { createAppRouter } from '@/router'
 
-// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in v5)
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
     },
   },
 })
 
-// Create the router
 const router = createAppRouter(queryClient)
 
 function App() {
   const { isAuthenticated } = useAppStore()
-  
-  // Validate token on app startup and periodically
   useAuthValidation()
 
-  // Show login screen if not authenticated
   if (!isAuthenticated) {
     return (
       <QueryClientProvider client={queryClient}>

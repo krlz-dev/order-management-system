@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -34,12 +34,19 @@ import { useProducts } from '@/hooks/useProducts'
 
 const columnHelper = createColumnHelper<Product>()
 
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: ReturnType<typeof setTimeout>
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func(...args), delay)
+  }
+}
+
 export function Inventory() {
-  // Local state for UI controls
   const [searchQuery, setSearchQuery] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'name', desc: false }
-  ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [queryParams, setQueryParams] = useState({
     page: 0,
@@ -72,21 +79,45 @@ export function Inventory() {
     deleteError
   } = useProducts(queryParams)
 
-  // Define table columns
-  const columns = useMemo(() => [
+  // Define table columns - Always reflect current queryParams state
+  const columns = [
     columnHelper.accessor('name', {
       header: ({ column }) => {
+        const isCurrentSort = queryParams.sortBy === 'name'
+        const isDesc = queryParams.sortDir === 'desc'
+        console.log('🔍 Name header render:', { 
+          sortBy: queryParams.sortBy, 
+          sortDir: queryParams.sortDir, 
+          isCurrentSort, 
+          isDesc,
+          icon: isCurrentSort ? (isDesc ? 'DOWN' : 'UP') : 'BOTH'
+        })
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'asc'
+              console.log('🔍 Name clicked:', { isCurrentSort, isDesc, newSortDir })
+              setQueryParams(prev => {
+                const newParams = {
+                  ...prev,
+                  page: 0,
+                  sortBy: 'name',
+                  sortDir: newSortDir
+                }
+                console.log('🔍 New queryParams:', newParams)
+                return newParams
+              })
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Name
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -99,17 +130,29 @@ export function Inventory() {
     }),
     columnHelper.accessor('price', {
       header: ({ column }) => {
+        const isCurrentSort = queryParams.sortBy === 'price'
+        const isDesc = queryParams.sortDir === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'desc'
+              setQueryParams(prev => ({
+                ...prev,
+                page: 0,
+                sortBy: 'price',
+                sortDir: newSortDir
+              }))
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Price
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -127,17 +170,29 @@ export function Inventory() {
     }),
     columnHelper.accessor('stock', {
       header: ({ column }) => {
+        const isCurrentSort = queryParams.sortBy === 'stock'
+        const isDesc = queryParams.sortDir === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'desc'
+              setQueryParams(prev => ({
+                ...prev,
+                page: 0,
+                sortBy: 'stock',
+                sortDir: newSortDir
+              }))
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Stock
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -193,56 +248,23 @@ export function Inventory() {
         )
       },
     }),
-  ], [])
+  ]
 
-  // Handle sorting changes
-  const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
-    console.log('🔥 SORTING CHANGE TRIGGERED:', updaterOrValue)
-    
-    // Handle the updater function case
-    let newSorting: SortingState
-    if (typeof updaterOrValue === 'function') {
-      newSorting = updaterOrValue(sorting)
-      console.log('🔥 COMPUTED NEW SORTING:', newSorting)
-    } else {
-      newSorting = updaterOrValue
-    }
-    
-    setSorting(newSorting)
-    
-    if (newSorting.length > 0 && newSorting[0]) {
-      const sort = newSorting[0]
-      console.log('🔥 SORT OBJECT:', sort)
-      console.log('🔥 SORT ID:', sort.id, 'DESC:', sort.desc)
-      const newParams = {
-        ...queryParams,
-        page: 0, // Reset to first page when sorting
-        sortBy: sort.id,
-        sortDir: sort.desc ? 'desc' as const : 'asc' as const
-      }
-      console.log('🔥 NEW QUERY PARAMS:', newParams)
-      setQueryParams(newParams)
-    } else {
-      console.log('🔥 NO SORTING - RESETTING TO DEFAULT')
-      setQueryParams(prev => ({
-        ...prev,
-        page: 0,
-        sortBy: 'name',
-        sortDir: 'asc'
-      }))
-    }
-  }
 
   // Create table instance
+  // Sorting state derived from query params
+  const sortingState = useMemo(() => [
+    { id: queryParams.sortBy, desc: queryParams.sortDir === 'desc' }
+  ], [queryParams.sortBy, queryParams.sortDir])
+
   const table = useReactTable({
     data: products || [],
     columns,
-    onSortingChange: handleSortingChange,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     state: {
-      sorting,
+      sorting: sortingState,
       columnFilters,
       pagination: {
         pageIndex: queryParams.page,
@@ -251,11 +273,28 @@ export function Inventory() {
     },
     manualPagination: true,
     manualSorting: true,
-    pageCount: Math.ceil((pagination?.totalElements || 0) / queryParams.size),
+    pageCount: pagination?.totalPages || 1,
   })
 
   // Combine all errors
   const allErrors = [error, createError, updateError, deleteError].filter(Boolean).join(', ')
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce((query: string) => {
+      setQueryParams(prev => ({
+        ...prev,
+        page: 0,
+        search: query || undefined
+      }))
+    }, 500),
+    []
+  )
+
+  // Handle search input changes
+  useEffect(() => {
+    debouncedSearch(searchQuery)
+  }, [searchQuery, debouncedSearch])
 
   // Handle pagination changes
   const handlePageChange = (newPage: number) => {
@@ -302,11 +341,7 @@ export function Inventory() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    setQueryParams(prev => ({
-      ...prev,
-      page: 0, // Reset to first page when searching
-      search: query || undefined
-    }))
+    // Debounced search will handle the API call
   }
 
   const handleClearSearch = () => {
@@ -489,14 +524,14 @@ export function Inventory() {
               </div>
               <div className="flex w-[100px] items-center justify-center text-sm font-medium">
                 Page {pagination ? pagination.page + 1 : 1} of{" "}
-                {pagination ? Math.ceil(pagination.totalElements / pagination.size) : 1}
+                {pagination?.totalPages || 1}
               </div>
               <div className="flex items-center space-x-2">
                 <Button
                   variant="outline"
                   className="h-8 w-8 p-0"
                   onClick={() => handlePageChange(0)}
-                  disabled={!pagination || pagination.page === 0}
+                  disabled={!pagination || pagination.first}
                 >
                   <span className="sr-only">Go to first page</span>
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -507,7 +542,7 @@ export function Inventory() {
                   variant="outline"
                   className="h-8 w-8 p-0"
                   onClick={() => handlePageChange(Math.max(0, queryParams.page - 1))}
-                  disabled={!pagination || pagination.page === 0}
+                  disabled={!pagination || pagination.first}
                 >
                   <span className="sr-only">Go to previous page</span>
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -517,11 +552,8 @@ export function Inventory() {
                 <Button
                   variant="outline"
                   className="h-8 w-8 p-0"
-                  onClick={() => handlePageChange(Math.min(
-                    Math.ceil((pagination?.totalElements || 0) / queryParams.size) - 1,
-                    queryParams.page + 1
-                  ))}
-                  disabled={!pagination || queryParams.page >= Math.ceil(pagination.totalElements / pagination.size) - 1}
+                  onClick={() => handlePageChange(queryParams.page + 1)}
+                  disabled={!pagination || pagination.last}
                 >
                   <span className="sr-only">Go to next page</span>
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -531,8 +563,8 @@ export function Inventory() {
                 <Button
                   variant="outline"
                   className="h-8 w-8 p-0"
-                  onClick={() => handlePageChange(Math.ceil((pagination?.totalElements || 0) / queryParams.size) - 1)}
-                  disabled={!pagination || queryParams.page >= Math.ceil(pagination.totalElements / pagination.size) - 1}
+                  onClick={() => handlePageChange((pagination?.totalPages || 1) - 1)}
+                  disabled={!pagination || pagination.last}
                 >
                   <span className="sr-only">Go to last page</span>
                   <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">

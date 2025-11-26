@@ -36,9 +36,6 @@ const columnHelper = createColumnHelper<Order>()
 export function CustomerOrders() {
   // Local state for UI controls
   const [searchQuery, setSearchQuery] = useState('')
-  const [sorting, setSorting] = useState<SortingState>([
-    { id: 'createdAt', desc: true }
-  ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [queryParams, setQueryParams] = useState({
@@ -63,8 +60,8 @@ export function CustomerOrders() {
     createError
   } = useOrders(queryParams)
 
-  // Define table columns
-  const columns = useMemo(() => [
+  // Define table columns - Always reflect current queryParams state
+  const columns = [
     columnHelper.accessor('id', {
       header: 'Order ID',
       cell: ({ row }) => {
@@ -85,17 +82,29 @@ export function CustomerOrders() {
     }),
     columnHelper.accessor('totalPrice', {
       header: ({ column }) => {
+        const isCurrentSort = queryParams.sortBy === 'totalPrice'
+        const isDesc = queryParams.sortDir === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'desc'
+              setQueryParams(prev => ({
+                ...prev,
+                page: 0,
+                sortBy: 'totalPrice',
+                sortDir: newSortDir
+              }))
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Total Price
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -113,17 +122,29 @@ export function CustomerOrders() {
     }),
     columnHelper.accessor('createdAt', {
       header: ({ column }) => {
+        const isCurrentSort = queryParams.sortBy === 'createdAt'
+        const isDesc = queryParams.sortDir === 'desc'
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            onClick={() => {
+              const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'desc'
+              setQueryParams(prev => ({
+                ...prev,
+                page: 0,
+                sortBy: 'createdAt',
+                sortDir: newSortDir
+              }))
+            }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
             Order Date
-            {column.getIsSorted() === 'asc' ? (
-              <ChevronUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === 'desc' ? (
-              <ChevronDown className="ml-2 h-4 w-4" />
+            {isCurrentSort ? (
+              isDesc ? (
+                <ChevronDown className="ml-2 h-4 w-4" />
+              ) : (
+                <ChevronUp className="ml-2 h-4 w-4" />
+              )
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4" />
             )}
@@ -197,50 +218,25 @@ export function CustomerOrders() {
         )
       },
     }),
-  ], [])
+  ]
 
-  // Handle sorting changes
-  const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
-    // Handle the updater function case
-    let newSorting: SortingState
-    if (typeof updaterOrValue === 'function') {
-      newSorting = updaterOrValue(sorting)
-    } else {
-      newSorting = updaterOrValue
-    }
-    
-    setSorting(newSorting)
-    
-    if (newSorting.length > 0 && newSorting[0]) {
-      const sort = newSorting[0]
-      setQueryParams(prev => ({
-        ...prev,
-        page: 0, // Reset to first page when sorting
-        sortBy: sort.id,
-        sortDir: sort.desc ? 'desc' : 'asc'
-      }))
-    } else {
-      setQueryParams(prev => ({
-        ...prev,
-        page: 0,
-        sortBy: 'createdAt',
-        sortDir: 'desc'
-      }))
-    }
-  }
 
   // Create table instance
+  // Sorting state derived from query params
+  const sortingState = useMemo(() => [
+    { id: queryParams.sortBy, desc: queryParams.sortDir === 'desc' }
+  ], [queryParams.sortBy, queryParams.sortDir])
+
   const table = useReactTable({
     data: orders || [],
     columns,
-    onSortingChange: handleSortingChange,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: 'includesString',
     state: {
-      sorting,
+      sorting: sortingState,
       columnFilters,
       globalFilter,
       pagination: {
@@ -250,7 +246,7 @@ export function CustomerOrders() {
     },
     manualPagination: true,
     manualSorting: true,
-    pageCount: Math.ceil((pagination?.totalElements || 0) / queryParams.size),
+    pageCount: pagination?.totalPages || 1,
   })
 
   // Combine all errors

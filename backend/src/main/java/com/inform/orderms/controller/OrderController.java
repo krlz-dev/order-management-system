@@ -27,6 +27,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,9 +45,15 @@ public class OrderController {
     private final JwtUtil jwtUtil;
 
     @GetMapping
-    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with user information")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved all orders")
+    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with optional search filters")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved orders")
     public ResponseEntity<PageResponse<OrderSummaryResponse>> getAllOrders(
+            @Parameter(description = "General search query (searches user email or total price if numeric)") @RequestParam(required = false) String search,
+            @Parameter(description = "Filter by specific user ID") @RequestParam(required = false) UUID userId,
+            @Parameter(description = "Minimum total price filter") @RequestParam(required = false) BigDecimal minPrice,
+            @Parameter(description = "Maximum total price filter") @RequestParam(required = false) BigDecimal maxPrice,
+            @Parameter(description = "Start date filter (ISO 8601 format)") @RequestParam(required = false) LocalDateTime startDate,
+            @Parameter(description = "End date filter (ISO 8601 format)") @RequestParam(required = false) LocalDateTime endDate,
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
             @Parameter(description = "Sort field") @RequestParam(defaultValue = "createdAt") String sortBy,
@@ -55,7 +63,7 @@ public class OrderController {
             Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        Page<OrderSummaryResponse> orders = orderService.getAllOrdersSummary(pageable);
+        Page<OrderSummaryResponse> orders = orderService.searchOrders(search, userId, minPrice, maxPrice, startDate, endDate, pageable);
         
         PageResponse<OrderSummaryResponse> response = new PageResponse<>(
                 orders.getContent(),

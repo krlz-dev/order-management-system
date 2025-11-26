@@ -14,15 +14,18 @@ import com.inform.orderms.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import jakarta.persistence.criteria.Predicate;
 
 @Service
 @RequiredArgsConstructor
@@ -137,6 +140,66 @@ public class OrderService {
         Page<Order> orders = orderRepository.findAll(pageable);
         orders.getContent().forEach(order -> order.getOrderItems().size());
         return orders.map(this::convertToOrderSummaryResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> searchOrders(String search, UUID userId, BigDecimal minPrice, BigDecimal maxPrice, 
+                                                   LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        
+        Specification<Order> spec = createOrderSearchSpecification(search, userId, minPrice, maxPrice, startDate, endDate);
+        Page<Order> orders = orderRepository.findAll(spec, pageable);
+        orders.getContent().forEach(order -> order.getOrderItems().size());
+        return orders.map(this::convertToOrderSummaryResponse);
+    }
+
+    private Specification<Order> createOrderSearchSpecification(String search, UUID userId, BigDecimal minPrice, 
+                                                               BigDecimal maxPrice, LocalDateTime startDate, LocalDateTime endDate) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // General search - searches by totalPrice if numeric, otherwise searches by user email
+            if (search != null && !search.trim().isEmpty()) {
+                String searchTerm = search.trim().toLowerCase();
+                
+                // Try to parse as BigDecimal for totalPrice search
+                try {
+                    BigDecimal searchPrice = new BigDecimal(searchTerm);
+                    predicates.add(criteriaBuilder.equal(root.get("totalPrice"), searchPrice));
+                } catch (NumberFormatException e) {
+                    // If not a number, search by user email by finding matching user IDs
+                    List<UUID> matchingUserIds = userService.findUserIdsByEmailContaining(searchTerm);
+                    if (!matchingUserIds.isEmpty()) {
+                        predicates.add(root.get("userId").in(matchingUserIds));
+                    } else {
+                        // If no matching users found, add a condition that will return no results
+                        predicates.add(criteriaBuilder.disjunction());
+                    }
+                }
+            }
+
+            // Filter by specific user ID
+            if (userId != null) {
+                predicates.add(criteriaBuilder.equal(root.get("userId"), userId));
+            }
+
+            // Price range filters
+            if (minPrice != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("totalPrice"), minPrice));
+            }
+            if (maxPrice != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("totalPrice"), maxPrice));
+            }
+
+            // Date range filters
+            if (startDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("createdAt"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("createdAt"), endDate));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     @Transactional(readOnly = true)

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +29,13 @@ public class UserService {
 
     public Optional<User> findById(UUID id) {
         return userRepository.findById(id);
+    }
+
+    public List<UUID> findUserIdsByEmailContaining(String searchTerm) {
+        return userRepository.findByEmailContainingIgnoreCase(searchTerm)
+                .stream()
+                .map(User::getId)
+                .collect(Collectors.toList());
     }
 
     public boolean validatePassword(String rawPassword, String encodedPassword) {

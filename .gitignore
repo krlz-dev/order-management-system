@@ -183,3 +183,6 @@ spring-shell.log
 
 # JUnit
 junit-platform.properties
+
+# Commands Claude Console Cli
+.claude

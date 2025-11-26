@@ -56,7 +56,9 @@ export function useProducts(params: UseProductsParams) {
       page: productsData.page,
       size: productsData.size,
       totalElements: productsData.totalElements,
-      totalPages: productsData.totalPages
+      totalPages: productsData.totalPages,
+      first: productsData.first,
+      last: productsData.last
     } : null,
     
     // States

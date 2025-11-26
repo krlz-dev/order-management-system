@@ -7,6 +7,7 @@ interface UseOrdersParams {
   size: number
   sortBy?: string
   sortDir?: 'asc' | 'desc'
+  search?: string
 }
 
 export function useOrders(params: UseOrdersParams) {
@@ -54,7 +55,9 @@ export function useOrders(params: UseOrdersParams) {
       page: ordersData.page,
       size: ordersData.size,
       totalElements: ordersData.totalElements,
-      totalPages: ordersData.totalPages
+      totalPages: ordersData.totalPages,
+      first: ordersData.first,
+      last: ordersData.last
     } : null,
     
     // States

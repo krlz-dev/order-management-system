@@ -22,7 +22,7 @@ export interface LoginResponse {
     id: string
     email: string
     name: string
-    role: string
+    roles: string[]
   }
 }
 
@@ -169,13 +169,14 @@ class ApiService {
   }
 
   // Orders API
-  async getOrders(params: Partial<PaginationParams> = {}): Promise<ApiResponse<PageResponse<Order>>> {
+  async getOrders(params: Partial<PaginationParams & { search?: string }> = {}): Promise<ApiResponse<PageResponse<Order>>> {
     const searchParams = new URLSearchParams()
     
     if (params.page !== undefined) searchParams.append('page', params.page.toString())
     if (params.size !== undefined) searchParams.append('size', params.size.toString())
     if (params.sortBy) searchParams.append('sortBy', params.sortBy)
     if (params.sortDir) searchParams.append('sortDir', params.sortDir)
+    if (params.search) searchParams.append('search', params.search)
     
     const queryString = searchParams.toString()
     const endpoint = queryString ? `/orders?${queryString}` : '/orders'

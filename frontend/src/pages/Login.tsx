@@ -21,12 +21,7 @@ export function Login() {
       
       if (response.success && response.data) {
         const { accessToken, refreshToken, expiresIn, user } = response.data
-        // Transform the user data to match expected format
-        const userWithRoles = {
-          ...user,
-          roles: [user.role] // Convert single role to array
-        }
-        setAuth(accessToken, refreshToken, expiresIn, userWithRoles)
+        setAuth(accessToken, refreshToken, expiresIn, user)
       } else {
         setError(response.error || 'Login failed')
       }
@@ -113,12 +108,29 @@ export function Login() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Demo credentials: <br />
-                <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">
-                  admin@orderflow.com / admin123
-                </span>
-              </p>
+              <p className="text-sm text-gray-600 mb-3">Demo accounts:</p>
+              <div className="space-y-2 text-xs">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="font-semibold text-blue-800 mb-1">Admin Account</p>
+                  <span className="font-mono bg-blue-100 px-2 py-1 rounded text-blue-700">
+                    admin@orderflow.com / admin123
+                  </span>
+                </div>
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="font-semibold text-green-800 mb-2">Customer Accounts</p>
+                  <div className="space-y-1">
+                    <div className="font-mono bg-green-100 px-2 py-1 rounded text-green-700">
+                      rodrigo.perez@orderflow.com / password123
+                    </div>
+                    <div className="font-mono bg-green-100 px-2 py-1 rounded text-green-700">
+                      andrea.torrez@orderflow.com / password123
+                    </div>
+                    <div className="font-mono bg-green-100 px-2 py-1 rounded text-green-700">
+                      jorge.robles@orderflow.com / password123
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
