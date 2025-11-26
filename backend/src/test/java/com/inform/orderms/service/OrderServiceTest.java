@@ -28,11 +28,14 @@ class OrderServiceTest {
     @Mock
     private ProductRepository productRepository;
     
+    @Mock
+    private UserService userService;
+    
     private OrderService orderService;
 
     @BeforeEach
     void setUp() {
-        orderService = new OrderService(orderRepository, productRepository);
+        orderService = new OrderService(orderRepository, productRepository, userService);
     }
 
     @Test

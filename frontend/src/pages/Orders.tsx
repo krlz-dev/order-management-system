@@ -2,9 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
   getPaginationRowModel,
-  getFilteredRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
@@ -72,6 +70,17 @@ export function MyOrders() {
       cell: ({ row }) => {
         const id = row.getValue('id') as string
         return <div className="font-medium">#{id ? id.slice(-8) : ''}</div>
+      }
+    }),
+    columnHelper.accessor('userEmail', {
+      header: 'Customer',
+      cell: ({ row }) => {
+        const userEmail = row.getValue('userEmail') as string | null
+        return (
+          <div className="font-medium">
+            {userEmail || 'Legacy Order'}
+          </div>
+        )
       }
     }),
     columnHelper.accessor('totalPrice', {
@@ -378,6 +387,7 @@ export function MyOrders() {
                       <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                       <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                       <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
                       <TableCell><div className="h-8 bg-gray-200 rounded animate-pulse w-8"></div></TableCell>
                     </TableRow>
                   ))
@@ -399,7 +409,7 @@ export function MyOrders() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                       No results.
                     </TableCell>
                   </TableRow>

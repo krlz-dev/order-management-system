@@ -26,6 +26,8 @@ export interface Order {
   totalPrice: number
   totalItems: number
   createdAt: string
+  userId: string | null
+  userEmail: string | null
 }
 
 export interface OrderCreateRequest {

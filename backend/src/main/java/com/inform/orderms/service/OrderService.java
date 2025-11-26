@@ -8,6 +8,7 @@ import com.inform.orderms.dto.OrderSummaryResponse;
 import com.inform.orderms.model.Order;
 import com.inform.orderms.model.OrderItem;
 import com.inform.orderms.model.Product;
+import com.inform.orderms.model.User;
 import com.inform.orderms.repository.OrderRepository;
 import com.inform.orderms.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final UserService userService;
 
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
@@ -37,6 +39,13 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<Order> getAllOrders(Pageable pageable) {
         Page<Order> orders = orderRepository.findAll(pageable);
+        orders.getContent().forEach(order -> order.getOrderItems().size());
+        return orders;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Order> getOrdersByUserId(UUID userId, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByUserId(userId, pageable);
         orders.getContent().forEach(order -> order.getOrderItems().size());
         return orders;
     }
@@ -97,10 +106,18 @@ public class OrderService {
                 .map(this::convertToOrderItemResponse)
                 .collect(Collectors.toList());
         
+        String userEmail = order.getUserId() != null 
+                ? userService.findById(order.getUserId())
+                    .map(User::getEmail)
+                    .orElse("Unknown User")
+                : "Legacy Order";
+        
         return new OrderSummaryResponse(
                 order.getId(),
                 order.getCreatedAt(),
                 order.getTotalPrice(),
+                order.getUserId(),
+                userEmail,
                 orderItemResponses
         );
     }
@@ -118,6 +135,13 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Page<OrderSummaryResponse> getAllOrdersSummary(Pageable pageable) {
         Page<Order> orders = orderRepository.findAll(pageable);
+        orders.getContent().forEach(order -> order.getOrderItems().size());
+        return orders.map(this::convertToOrderSummaryResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> getOrdersSummaryByUserId(UUID userId, Pageable pageable) {
+        Page<Order> orders = orderRepository.findByUserId(userId, pageable);
         orders.getContent().forEach(order -> order.getOrderItems().size());
         return orders.map(this::convertToOrderSummaryResponse);
     }
@@ -158,12 +182,13 @@ public class OrderService {
     }
 
     @Transactional
-    public Order createOrderFromCart(CartCalculationRequest request) {
+    public Order createOrderFromCart(CartCalculationRequest request, UUID userId) {
         if (request.getItems() == null || request.getItems().isEmpty()) {
             throw new RuntimeException("Order must contain at least one item");
         }
 
         Order order = new Order();
+        order.setUserId(userId);
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItem cartItem : request.getItems()) {

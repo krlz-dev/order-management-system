@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiService } from '@/services/api'
-import type { ProductFilters, ProductCreateRequest } from '@/types'
+import type { ProductCreateRequest } from '@/types'
 
 interface UseProductsParams {
   page: number

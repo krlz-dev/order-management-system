@@ -6,7 +6,10 @@ import com.inform.orderms.dto.ErrorResponse;
 import com.inform.orderms.dto.OrderSummaryResponse;
 import com.inform.orderms.dto.PageResponse;
 import com.inform.orderms.model.Order;
+import com.inform.orderms.model.User;
 import com.inform.orderms.service.OrderService;
+import com.inform.orderms.service.UserService;
+import com.inform.orderms.util.JwtUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -25,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -35,10 +39,12 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+    private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     @GetMapping
-    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with optimized response structure")
-    @ApiResponse(responseCode = "200", description = "Successfully retrieved orders")
+    @Operation(summary = "Get all orders", description = "Retrieve a paginated list of all orders with user information")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved all orders")
     public ResponseEntity<PageResponse<OrderSummaryResponse>> getAllOrders(
             @Parameter(description = "Page number (0-based)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Number of items per page") @RequestParam(defaultValue = "10") int size,
@@ -81,12 +87,15 @@ public class OrderController {
     @Operation(summary = "Create new order", description = "Create a new order with products. Total price is calculated automatically.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Order created successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid order data or insufficient stock")
+        @ApiResponse(responseCode = "400", description = "Invalid order data or insufficient stock"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - invalid or missing token")
     })
     public ResponseEntity<?> createOrder(
-            @Parameter(description = "Cart items with products and quantities") @Valid @RequestBody CartCalculationRequest request) {
+            @Parameter(description = "Cart items with products and quantities") @Valid @RequestBody CartCalculationRequest request,
+            @RequestHeader("Authorization") String authHeader) {
         try {
-            Order createdOrder = orderService.createOrderFromCart(request);
+            UUID userId = getUserIdFromToken(authHeader);
+            Order createdOrder = orderService.createOrderFromCart(request, userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
         } catch (RuntimeException e) {
             ErrorResponse errorResponse = new ErrorResponse("BAD_REQUEST", e.getMessage());
@@ -109,5 +118,26 @@ public class OrderController {
             ErrorResponse errorResponse = new ErrorResponse("BAD_REQUEST", e.getMessage());
             return ResponseEntity.badRequest().body(errorResponse);
         }
+    }
+
+    private UUID getUserIdFromToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Authorization header missing or invalid format");
+        }
+        
+        String token = authHeader.substring(7);
+        
+        if (!jwtUtil.validateToken(token)) {
+            throw new RuntimeException("Invalid or expired token");
+        }
+        
+        String email = jwtUtil.getEmailFromToken(token);
+        Optional<User> userOpt = userService.findByEmail(email);
+        
+        if (userOpt.isEmpty()) {
+            throw new RuntimeException("User not found");
+        }
+        
+        return userOpt.get().getId();
     }
 }
