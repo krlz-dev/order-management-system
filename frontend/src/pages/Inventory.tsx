@@ -2,9 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
-  getSortedRowModel,
   getPaginationRowModel,
-  getFilteredRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
@@ -43,7 +41,6 @@ export function Inventory() {
     { id: 'name', desc: false }
   ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [globalFilter, setGlobalFilter] = useState('')
   const [queryParams, setQueryParams] = useState({
     page: 0,
     size: 10,
@@ -220,7 +217,7 @@ export function Inventory() {
         ...queryParams,
         page: 0, // Reset to first page when sorting
         sortBy: sort.id,
-        sortDir: sort.desc ? 'desc' : 'asc'
+        sortDir: sort.desc ? 'desc' as const : 'asc' as const
       }
       console.log('🔥 NEW QUERY PARAMS:', newParams)
       setQueryParams(newParams)
