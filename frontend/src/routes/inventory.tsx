@@ -53,7 +53,8 @@ export const Route = createFileRoute('/inventory')({
       search: search.search as string | undefined,
     }
   },
-  loader: ({ context, search }) => {
+  loader: ({ context, location }) => {
+    const search = location.search as InventorySearch
     const params = {
       page: search?.page ?? 0,
       size: search?.size ?? 10,

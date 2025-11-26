@@ -118,7 +118,7 @@ class ApiService {
 
   // Products API
   async getProducts(params: Partial<PaginationParams & ProductFilters> = {}): Promise<ApiResponse<PageResponse<Product>>> {
-    console.log('🔥 API getProducts called with:', params)
+    console.log('🚀 API call:', { sortBy: params.sortBy, sortDir: params.sortDir, page: params.page })
     
     const searchParams = new URLSearchParams()
     
@@ -138,8 +138,6 @@ class ApiService {
     
     const queryString = searchParams.toString()
     const endpoint = queryString ? `/products?${queryString}` : '/products'
-    
-    console.log('🔥 API endpoint:', endpoint)
     
     return this.request<PageResponse<Product>>(endpoint, {}, true)
   }

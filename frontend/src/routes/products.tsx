@@ -1,6 +1,6 @@
 import { createFileRoute, useLoaderData, useNavigate, useSearch } from '@tanstack/react-router'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,7 @@ import { apiService } from '@/services/api'
 import type { Product } from '@/types'
 
 interface ProductsSearch {
+  page?: number
   size?: number
   sortBy?: string
   sortDir?: 'asc' | 'desc'
@@ -31,34 +32,35 @@ interface ProductsSearch {
 export const Route = createFileRoute('/products')({
   validateSearch: (search: Record<string, unknown>): ProductsSearch => {
     return {
+      page: Number(search.page) || undefined,
       size: Number(search.size) || 20,
       sortBy: (search.sortBy as string) || 'name',
       sortDir: (search.sortDir as 'asc' | 'desc') || 'asc',
       search: search.search as string | undefined,
     }
   },
-  loader: ({ context, search }) => {
-    // Load initial page for infinite scroll
-    const params = {
-      page: 0, // Always start from page 0 for infinite scroll
-      size: search?.size ?? 20,
-      sortBy: search?.sortBy ?? 'name',
-      sortDir: search?.sortDir ?? 'asc',
-      search: search?.search
-    }
-    return context.queryClient.fetchQuery({
-      queryKey: ['products-initial', params],
-      queryFn: () => apiService.getProducts(params),
-      staleTime: 0, // force refetch every navigation
-    })
-  },
+  // Disabled loader to prevent conflicts with infinite query
+  // loader: ({ context, search }) => {
+  //   const params = {
+  //     page: 0,
+  //     size: search?.size ?? 20,
+  //     sortBy: search?.sortBy ?? 'name',
+  //     sortDir: search?.sortDir ?? 'asc',
+  //     search: search?.search
+  //   }
+  //   return context.queryClient.fetchQuery({
+  //     queryKey: ['products-initial', params],
+  //     queryFn: () => apiService.getProducts(params),
+  //     staleTime: 0,
+  //   })
+  // },
   component: Products,
 })
 
 function Products() {
-  const initialData = useLoaderData({ from: '/products' })
   const navigate = useNavigate({ from: '/products' })
   const search = useSearch({ from: '/products' })
+  const queryClient = useQueryClient()
   const [searchQuery, setSearchQuery] = useState(search?.search || '')
   const [cartViewOpen, setCartViewOpen] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -90,30 +92,28 @@ function Products() {
       sortDir: search?.sortDir ?? 'asc',
       search: search?.search
     }],
-    queryFn: ({ pageParam = 0 }) => apiService.getProducts({
+    queryFn: ({ pageParam }: { pageParam: number }) => apiService.getProducts({
       page: pageParam,
       size: search?.size ?? 20,
       sortBy: search?.sortBy ?? 'name',
       sortDir: search?.sortDir ?? 'asc',
       search: search?.search
     }),
-    getNextPageParam: (lastPage) => {
-      if (lastPage.data && lastPage.data.page < lastPage.data.totalPages - 1) {
+    initialPageParam: 0,
+    getNextPageParam: (lastPage: any) => {
+      if (lastPage?.data && lastPage.data.page < lastPage.data.totalPages - 1) {
         return lastPage.data.page + 1
       }
       return undefined
     },
-    initialData: initialData ? {
-      pages: [initialData],
-      pageParams: [0]
-    } : undefined,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    // No initial data since loader is disabled
+    staleTime: 1000 * 30, // 30 seconds to prevent excessive refetching
   })
 
   // Flatten all products from all pages
-  const allProducts = infiniteData?.pages?.flatMap(page => page?.data?.content || []) || []
-  const firstPageData = infiniteData?.pages?.[0]?.data
-  const totalElements = firstPageData?.totalElements || 0
+  const allProducts = infiniteData?.pages?.flatMap((page: any) => page?.data?.content || []) || []
+  const firstPageData = infiniteData?.pages?.[0] as any
+  const totalElements = firstPageData?.data?.totalElements || 0
 
   // Update local search state when URL search changes
   useEffect(() => {

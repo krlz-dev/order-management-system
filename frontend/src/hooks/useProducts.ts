@@ -8,6 +8,11 @@ interface UseProductsParams {
   sortBy?: string
   sortDir?: 'asc' | 'desc'
   search?: string
+  name?: string
+  minPrice?: number
+  maxPrice?: number
+  minStock?: number
+  maxStock?: number
 }
 
 export function useProducts(params: UseProductsParams) {
