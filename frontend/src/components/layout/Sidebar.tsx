@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { useAppStore, type PageType } from '@/store/useAppStore'
+import { Link, useLocation } from '@tanstack/react-router'
 import { 
   Package, 
   ShoppingCart, 
@@ -17,22 +17,21 @@ interface SidebarProps {
 interface MenuItem {
   icon: any
   label: string
-  page: PageType
+  to: string
   badge?: number
 }
 
 const menuItems: MenuItem[] = [
-  { icon: Home, label: 'Dashboard', page: 'dashboard' },
-  { icon: ShoppingCart, label: 'Products', page: 'products' },
-  { icon: ClipboardList, label: 'My Orders', page: 'orders' },
-  { icon: Archive, label: 'Inventory', page: 'inventory' },
+  { icon: Home, label: 'Dashboard', to: '/' },
+  { icon: ShoppingCart, label: 'Products', to: '/products' },
+  { icon: ClipboardList, label: 'Customer Orders', to: '/orders' },
+  { icon: Archive, label: 'Inventory', to: '/inventory' },
 ]
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const { currentPage, setCurrentPage } = useAppStore()
+  const location = useLocation()
 
-  const handleNavigation = (page: PageType) => {
-    setCurrentPage(page)
+  const handleNavigation = () => {
     onClose() // Close sidebar on mobile after navigation
   }
 
@@ -79,11 +78,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <ul className="space-y-2">
               {menuItems.map((item, index) => (
                 <li key={index}>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleNavigation(item.page)}
-                    className={`w-full justify-start gap-3 h-12 text-left text-white hover:bg-white/10 ${
-                      currentPage === item.page ? 'bg-white/20 hover:bg-white/25' : ''
+                  <Link
+                    to={item.to}
+                    search={{}}
+                    onClick={handleNavigation}
+                    className={`flex items-center w-full justify-start gap-3 h-12 text-left text-white hover:bg-white/10 rounded-md px-3 transition-colors ${
+                      location.pathname === item.to ? 'bg-white/20 hover:bg-white/25' : ''
                     }`}
                   >
                     <item.icon className="h-5 w-5" />
@@ -93,28 +93,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                         {item.badge}
                       </span>
                     )}
-                  </Button>
+                  </Link>
                 </li>
               ))}
             </ul>
           </nav>
-          
-          {/* User Profile */}
-          <div className="p-4 border-t border-white/10">
-            <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-white/10 cursor-pointer">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Package className="h-5 w-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {useAppStore.getState().user?.name || 'User'}
-                </p>
-                <p className="text-xs text-white/70 truncate">
-                  {useAppStore.getState().user?.email || 'user@example.com'}
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </aside>
     </>

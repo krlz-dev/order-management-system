@@ -5,6 +5,7 @@ import com.inform.orderms.dto.LoginRequest;
 import com.inform.orderms.dto.LoginResponse;
 import com.inform.orderms.dto.RefreshTokenRequest;
 import com.inform.orderms.dto.ValidationResponse;
+import com.inform.orderms.dto.UserDto;
 import com.inform.orderms.model.User;
 import com.inform.orderms.service.UserService;
 import com.inform.orderms.util.JwtUtil;
@@ -56,7 +57,8 @@ public class AuthController {
         
         String token = jwtUtil.generateToken(user.getEmail());
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
-        LoginResponse response = new LoginResponse(token, refreshToken, jwtExpiration / 1000); // Convert to seconds
+        UserDto userDto = userService.convertToDto(user);
+        LoginResponse response = new LoginResponse(token, refreshToken, jwtExpiration / 1000, userDto); // Convert to seconds
         
         return ResponseEntity.ok(response);
     }
@@ -116,7 +118,9 @@ public class AuthController {
             
             String newAccessToken = jwtUtil.generateToken(email);
             String newRefreshToken = jwtUtil.generateRefreshToken(email);
-            LoginResponse response = new LoginResponse(newAccessToken, newRefreshToken, jwtExpiration / 1000);
+            User user = userOpt.get();
+            UserDto userDto = userService.convertToDto(user);
+            LoginResponse response = new LoginResponse(newAccessToken, newRefreshToken, jwtExpiration / 1000, userDto);
             
             return ResponseEntity.ok(response);
             

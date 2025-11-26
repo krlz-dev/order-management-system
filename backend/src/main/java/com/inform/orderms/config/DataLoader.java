@@ -1,5 +1,7 @@
 package com.inform.orderms.config;
 
+import com.inform.orderms.model.Role;
+import com.inform.orderms.repository.RoleRepository;
 import com.inform.orderms.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,29 +14,42 @@ import org.springframework.stereotype.Component;
 public class DataLoader implements CommandLineRunner {
 
     private final UserService userService;
+    private final RoleRepository roleRepository;
 
     @Override
     public void run(String... args) throws Exception {
+        initializeRoles();
         createDefaultUsers();
     }
 
+    private void initializeRoles() {
+        for (Role.RoleName roleName : Role.RoleName.values()) {
+            if (roleRepository.findByName(roleName).isEmpty()) {
+                Role role = new Role();
+                role.setName(roleName);
+                roleRepository.save(role);
+                log.info("Created role: {}", roleName);
+            }
+        }
+    }
+
     private void createDefaultUsers() {
-        // Create admin1@orderflow.com / admin1
-        if (userService.findByEmail("admin1@orderflow.com").isEmpty()) {
-            userService.createUser("admin1@orderflow.com", "admin1");
-            log.info("Created user: admin1@orderflow.com");
+        // Create admin@orderflow.com / admin123 (ADMIN)
+        if (userService.findByEmail("admin@orderflow.com").isEmpty()) {
+            userService.createUser("admin@orderflow.com", "admin123", "Admin", Role.RoleName.ADMIN);
+            log.info("Created admin user: admin@orderflow.com");
         }
 
-        // Create admin2@orderflow.com / admin2
-        if (userService.findByEmail("admin2@orderflow.com").isEmpty()) {
-            userService.createUser("admin2@orderflow.com", "admin2");
-            log.info("Created user: admin2@orderflow.com");
-        }
+        // Create customer users
+        createCustomerIfNotExists("rodrigo.perez@orderflow.com", "password123", "Rodrigo Perez");
+        createCustomerIfNotExists("andrea.torrez@orderflow.com", "password123", "Andrea Torrez");
+        createCustomerIfNotExists("jorge.robles@orderflow.com", "password123", "Jorge Robles");
+    }
 
-        // Create admin3@orderflow.com / admin3
-        if (userService.findByEmail("admin3@orderflow.com").isEmpty()) {
-            userService.createUser("admin3@orderflow.com", "admin3");
-            log.info("Created user: admin3@orderflow.com");
+    private void createCustomerIfNotExists(String email, String password, String name) {
+        if (userService.findByEmail(email).isEmpty()) {
+            userService.createUser(email, password, name, Role.RoleName.CUSTOMER);
+            log.info("Created customer user: {} - {}", email, name);
         }
     }
 }

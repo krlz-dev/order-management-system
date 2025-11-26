@@ -21,7 +21,12 @@ export function Login() {
       
       if (response.success && response.data) {
         const { accessToken, refreshToken, expiresIn, user } = response.data
-        setAuth(accessToken, refreshToken, expiresIn, user)
+        // Transform the user data to match expected format
+        const userWithRoles = {
+          ...user,
+          roles: [user.role] // Convert single role to array
+        }
+        setAuth(accessToken, refreshToken, expiresIn, userWithRoles)
       } else {
         setError(response.error || 'Login failed')
       }

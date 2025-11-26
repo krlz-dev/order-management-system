@@ -10,6 +10,7 @@ public class LoginResponse {
     private String refreshToken;
     private String tokenType = "Bearer";
     private long expiresIn;
+    private UserDto user;
 
     public LoginResponse(String accessToken, long expiresIn) {
         this.accessToken = accessToken;
@@ -20,5 +21,12 @@ public class LoginResponse {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expiresIn = expiresIn;
+    }
+
+    public LoginResponse(String accessToken, String refreshToken, long expiresIn, UserDto user) {
+        this.accessToken = accessToken;
+        this.refreshToken = refreshToken;
+        this.expiresIn = expiresIn;
+        this.user = user;
     }
 }

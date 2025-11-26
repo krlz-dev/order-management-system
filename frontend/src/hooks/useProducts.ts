@@ -13,8 +13,6 @@ interface UseProductsParams {
 export function useProducts(params: UseProductsParams) {
   const queryClient = useQueryClient()
 
-  console.log('🔥 useProducts called with params:', params)
-
   const {
     data: productsData,
     isLoading,
@@ -22,10 +20,7 @@ export function useProducts(params: UseProductsParams) {
     refetch
   } = useQuery({
     queryKey: ['products', params],
-    queryFn: () => {
-      console.log('🔥 API call with params:', params)
-      return apiService.getProducts(params)
-    },
+    queryFn: () => apiService.getProducts(params),
     select: (data) => data.success ? data.data : null,
   })
 

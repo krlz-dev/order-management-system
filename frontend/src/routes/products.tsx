@@ -1,3 +1,4 @@
+import { createFileRoute, useLoaderData } from '@tanstack/react-router'
 import { useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -15,27 +16,25 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { useCart } from '@/hooks/useCart'
-import { useProducts } from '@/hooks/useProducts'
 import { CartView } from '@/components/CartView'
+import { apiService } from '@/services/api'
 import type { Product } from '@/types'
 
-interface ProductsQueryParams {
-  page: number
-  size: number
-  sortBy: string
-  sortDir: 'asc' | 'desc'
-  search?: string
-}
+export const Route = createFileRoute('/products')({
+  loader: ({ context }) => {
+    return context.queryClient.fetchQuery({
+      queryKey: ['products', { page: 0, size: 20, sortBy: 'name', sortDir: 'asc' }],
+      queryFn: () => apiService.getProducts({ page: 0, size: 20, sortBy: 'name', sortDir: 'asc' }),
+      staleTime: 0, // force refetch every navigation
+    })
+  },
+  component: Products,
+})
 
-export function Products() {
+function Products() {
+  const initialData = useLoaderData({ from: '/products' })
   const [searchQuery, setSearchQuery] = useState('')
   const [cartViewOpen, setCartViewOpen] = useState(false)
-  const [queryParams, setQueryParams] = useState<ProductsQueryParams>({
-    page: 0,
-    size: 20,
-    sortBy: 'name',
-    sortDir: 'asc'
-  })
 
   const {
     items,
@@ -48,45 +47,22 @@ export function Products() {
     isCalculating
   } = useCart()
 
-  // Use React Query hook like other pages
-  const {
-    products,
-    pagination,
-    isLoading,
-    error,
-    refetch
-  } = useProducts(queryParams)
+  const products = initialData?.data?.content || []
+
+  // Filter products based on search
+  const displayProducts = searchQuery 
+    ? products.filter((product: any) => 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : products
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
-    setQueryParams(prev => {
-      const newParams = { ...prev, page: 0 }
-      if (query) {
-        newParams.search = query
-      } else {
-        delete newParams.search
-      }
-      return newParams
-    })
   }, [])
 
   const handleClearSearch = useCallback(() => {
     setSearchQuery('')
-    setQueryParams(prev => {
-      const newParams = { ...prev, page: 0 }
-      delete newParams.search
-      return newParams
-    })
   }, [])
-
-  const loadMoreProducts = () => {
-    if (pagination && pagination.page < pagination.totalPages - 1) {
-      setQueryParams(prev => ({
-        ...prev,
-        page: prev.page + 1
-      }))
-    }
-  }
 
   const handleAddToCart = (product: Product, quantity = 1) => {
     addItem(product, quantity)
@@ -100,11 +76,6 @@ export function Products() {
     updateQuantity(productId, quantity)
   }
 
-  const handleRefresh = () => {
-    refetch()
-  }
-
-
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
@@ -114,12 +85,11 @@ export function Products() {
             <p className="text-gray-600">Browse and add products to your cart.</p>
           </div>
           <Button
-            onClick={handleRefresh}
+            onClick={() => window.location.reload()}
             variant="outline"
-            disabled={isLoading}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
@@ -152,99 +122,71 @@ export function Products() {
             </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
-
           {/* Products Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-            {isLoading && (!products || products.length === 0) ? (
-              // Loading skeletons
-              Array.from({ length: 6 }).map((_, index) => (
-                <Card key={index} className="h-fit">
+            {displayProducts.map((product: any) => {
+              const cartQuantity = getItemQuantity(product.id)
+              return (
+                <Card key={product.id} className="h-fit">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse flex-1 mr-2"></div>
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                      <h4 className="font-semibold text-sm">{product.name}</h4>
+                      <span className="text-sm font-bold text-green-600">
+                        ${product.price.toFixed(2)}
+                      </span>
                     </div>
-                    <div className="h-3 bg-gray-200 rounded animate-pulse mb-3 w-24"></div>
-                    <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              (products || []).map((product) => {
-                const cartQuantity = getItemQuantity(product.id)
-                return (
-                  <Card key={product.id} className="h-fit">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold text-sm">{product.name}</h4>
-                        <span className="text-sm font-bold text-green-600">
-                          ${product.price.toFixed(2)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 mb-3">
-                        Stock: {product.stock} available
-                      </p>
-                      
-                      <div className="flex items-center justify-between">
-                        {cartQuantity > 0 ? (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleQuantityChange(product.id, cartQuantity - 1)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="text-sm font-medium w-8 text-center">
-                              {cartQuantity}
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleQuantityChange(product.id, cartQuantity + 1)}
-                              disabled={cartQuantity >= product.stock}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
+                    <p className="text-xs text-gray-600 mb-3">
+                      Stock: {product.stock} available
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      {cartQuantity > 0 ? (
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleAddToCart(product)}
-                            disabled={product.stock === 0}
-                            className="flex-1"
+                            onClick={() => handleQuantityChange(product.id, cartQuantity - 1)}
+                            className="h-8 w-8 p-0"
                           >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add to Cart
+                            <Minus className="h-3 w-3" />
                           </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })
-            )}
+                          <span className="text-sm font-medium w-8 text-center">
+                            {cartQuantity}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(product.id, cartQuantity + 1)}
+                            disabled={cartQuantity >= product.stock}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddToCart(product)}
+                          disabled={product.stock === 0}
+                          className="flex-1"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add to Cart
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
 
-          {/* Load More Button */}
-          {pagination && pagination.page < pagination.totalPages - 1 && (
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                onClick={loadMoreProducts}
-                disabled={isLoading}
-              >
-                {isLoading ? 'Loading...' : 'Load More Products'}
-              </Button>
+          {displayProducts.length === 0 && searchQuery && (
+            <div className="text-center py-12">
+              <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+              <p className="text-gray-600">Try adjusting your search query.</p>
             </div>
           )}
         </div>
@@ -339,8 +281,7 @@ export function Products() {
         open={cartViewOpen}
         onClose={() => setCartViewOpen(false)}
         onOrderCreated={() => {
-          // Optionally refresh products or show success message
-          refetch()
+          window.location.reload()
         }}
       />
     </div>

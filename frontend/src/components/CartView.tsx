@@ -239,7 +239,7 @@ export function CartView({ open, onClose, onOrderCreated }: CartViewProps) {
             <Button
               onClick={handleConfirmOrder}
               disabled={submitting}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-teal-600 hover:bg-teal-700 text-white"
             >
               {submitting ? (
                 'Creating Order...'

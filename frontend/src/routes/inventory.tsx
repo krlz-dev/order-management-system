@@ -1,3 +1,4 @@
+import { createFileRoute, useLoaderData } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import {
   useReactTable,
@@ -30,49 +31,53 @@ import { Package, Plus, Edit, Trash2, MoreVertical, Eye, Search, X, ChevronUp, C
 import type { Product, ProductCreateRequest } from '@/types'
 import { ProductModal } from '@/components/ProductModal'
 import { ProductDetailsDialog } from '@/components/ProductDetailsDialog'
+import { apiService } from '@/services/api'
 import { useProducts } from '@/hooks/useProducts'
 
 const columnHelper = createColumnHelper<Product>()
 
-export function Inventory() {
-  // Local state for UI controls
+export const Route = createFileRoute('/inventory')({
+  loader: ({ context }) => {
+    return context.queryClient.fetchQuery({
+      queryKey: ['products', { page: 0, size: 10, sortBy: 'name', sortDir: 'asc' }],
+      queryFn: () => apiService.getProducts({ page: 0, size: 10, sortBy: 'name', sortDir: 'asc' }),
+      staleTime: 0, // force refetch every navigation
+    })
+  },
+  component: Inventory,
+})
+
+function Inventory() {
+  const initialData = useLoaderData({ from: '/inventory' })
   const [searchQuery, setSearchQuery] = useState('')
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'name', desc: false }
   ])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [queryParams, setQueryParams] = useState({
-    page: 0,
-    size: 10,
-    sortBy: 'name',
-    sortDir: 'asc' as 'asc' | 'desc',
-    search: undefined as string | undefined
-  })
+  const [globalFilter, setGlobalFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | undefined>(undefined)
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null)
   const [isEdit, setIsEdit] = useState(false)
 
-  // Use React Query hook
   const {
-    products,
-    pagination,
-    isLoading,
-    error,
-    refetch,
     createProduct,
     updateProduct,
     deleteProduct,
-    // isCreating,
-    // isUpdating,
-    // isDeleting,
     createError,
     updateError,
     deleteError
-  } = useProducts(queryParams)
+  } = useProducts({ page: 0, size: 10, sortBy: 'name', sortDir: 'asc' })
 
-  // Define table columns
+  const products = initialData?.data?.content || []
+  const pagination = initialData?.data
+  const filteredProducts = globalFilter 
+    ? products.filter((product: any) => 
+        product.name.toLowerCase().includes(globalFilter.toLowerCase())
+      )
+    : products
+
   const columns = useMemo(() => [
     columnHelper.accessor('name', {
       header: ({ column }) => {
@@ -195,83 +200,25 @@ export function Inventory() {
     }),
   ], [])
 
-  // Handle sorting changes
-  const handleSortingChange = (updaterOrValue: SortingState | ((old: SortingState) => SortingState)) => {
-    console.log('🔥 SORTING CHANGE TRIGGERED:', updaterOrValue)
-    
-    // Handle the updater function case
-    let newSorting: SortingState
-    if (typeof updaterOrValue === 'function') {
-      newSorting = updaterOrValue(sorting)
-      console.log('🔥 COMPUTED NEW SORTING:', newSorting)
-    } else {
-      newSorting = updaterOrValue
-    }
-    
-    setSorting(newSorting)
-    
-    if (newSorting.length > 0 && newSorting[0]) {
-      const sort = newSorting[0]
-      console.log('🔥 SORT OBJECT:', sort)
-      console.log('🔥 SORT ID:', sort.id, 'DESC:', sort.desc)
-      const newParams = {
-        ...queryParams,
-        page: 0, // Reset to first page when sorting
-        sortBy: sort.id,
-        sortDir: sort.desc ? 'desc' as const : 'asc' as const
-      }
-      console.log('🔥 NEW QUERY PARAMS:', newParams)
-      setQueryParams(newParams)
-    } else {
-      console.log('🔥 NO SORTING - RESETTING TO DEFAULT')
-      setQueryParams(prev => ({
-        ...prev,
-        page: 0,
-        sortBy: 'name',
-        sortDir: 'asc'
-      }))
-    }
-  }
-
-  // Create table instance
   const table = useReactTable({
-    data: products || [],
+    data: filteredProducts,
     columns,
-    onSortingChange: handleSortingChange,
+    onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: 'includesString',
     state: {
       sorting,
       columnFilters,
-      pagination: {
-        pageIndex: queryParams.page,
-        pageSize: queryParams.size,
-      },
+      globalFilter,
     },
-    manualPagination: true,
-    manualSorting: true,
-    pageCount: Math.ceil((pagination?.totalElements || 0) / queryParams.size),
+    manualPagination: false,
+    manualSorting: false,
   })
 
-  // Combine all errors
-  const allErrors = [error, createError, updateError, deleteError].filter(Boolean).join(', ')
-
-  // Handle pagination changes
-  const handlePageChange = (newPage: number) => {
-    setQueryParams(prev => ({
-      ...prev,
-      page: newPage
-    }))
-  }
-
-  const handlePageSizeChange = (newSize: number) => {
-    setQueryParams(prev => ({
-      ...prev,
-      page: 0,
-      size: newSize
-    }))
-  }
+  const allErrors = [createError, updateError, deleteError].filter(Boolean).join(', ')
 
   const handleCreate = () => {
     setEditingProduct(undefined)
@@ -295,6 +242,7 @@ export function Inventory() {
     
     try {
       await deleteProduct(id)
+      window.location.reload()
     } catch (err) {
       // Error is handled by the mutation
     }
@@ -302,23 +250,12 @@ export function Inventory() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    setQueryParams(prev => ({
-      ...prev,
-      page: 0, // Reset to first page when searching
-      search: query || undefined
-    }))
+    setGlobalFilter(query)
   }
 
   const handleClearSearch = () => {
     setSearchQuery('')
-    setQueryParams(prev => {
-      const newParams = { ...prev }
-      delete newParams.search
-      return {
-        ...newParams,
-        page: 0
-      }
-    })
+    setGlobalFilter('')
   }
 
   const handleModalClose = () => {
@@ -334,14 +271,13 @@ export function Inventory() {
       } else {
         await createProduct(data)
       }
-      // Close modal on success
       handleModalClose()
+      window.location.reload()
     } catch (err) {
       // Error is handled by the mutations
       throw err
     }
   }
-
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -353,12 +289,11 @@ export function Inventory() {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              onClick={() => refetch()}
+              onClick={() => window.location.reload()}
               variant="outline"
-              disabled={isLoading}
               className="flex items-center gap-2"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="h-4 w-4" />
               Refresh
             </Button>
             <Button onClick={handleCreate} className="flex items-center gap-2">
@@ -426,17 +361,7 @@ export function Inventory() {
                 ))}
               </TableHeader>
               <TableBody>
-                {isLoading ? (
-                  // Loading skeleton rows
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow key={index}>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse"></div></TableCell>
-                      <TableCell><div className="h-8 bg-gray-200 rounded animate-pulse w-8"></div></TableCell>
-                    </TableRow>
-                  ))
-                ) : table.getRowModel().rows?.length ? (
+                {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -463,83 +388,30 @@ export function Inventory() {
             </Table>
           </div>
           
-          {/* Pagination Controls */}
+          {/* Client-side pagination */}
           <div className="flex items-center justify-between space-x-2 py-4">
             <div className="text-sm text-muted-foreground">
-              {pagination && (
-                <>Showing {pagination.page * pagination.size + 1} to{' '}
-                {Math.min((pagination.page + 1) * pagination.size, pagination.totalElements)} of{' '}
-                {pagination.totalElements} entries</>
-              )}
+              Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
+              {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, table.getFilteredRowModel().rows.length)} of{' '}
+              {table.getFilteredRowModel().rows.length} entries
             </div>
             <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-2">
-                <p className="text-sm font-medium">Rows per page</p>
-                <select
-                  value={queryParams.size}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="h-8 w-[70px] rounded border border-input bg-background px-3 py-0 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-                >
-                  {[10, 20, 30, 40, 50].map((pageSize) => (
-                    <option key={pageSize} value={pageSize}>
-                      {pageSize}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                Page {pagination ? pagination.page + 1 : 1} of{" "}
-                {pagination ? Math.ceil(pagination.totalElements / pagination.size) : 1}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handlePageChange(0)}
-                  disabled={!pagination || pagination.page === 0}
-                >
-                  <span className="sr-only">Go to first page</span>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6.85355 3.14645C7.04882 3.34171 7.04882 3.65829 6.85355 3.85355L3.70711 7H12.5C12.7761 7 13 7.22386 13 7.5C13 7.77614 12.7761 8 12.5 8H3.70711L6.85355 11.1464C7.04882 11.3417 7.04882 11.6583 6.85355 11.8536C6.65829 12.0488 6.34171 12.0488 6.14645 11.8536L2.14645 7.85355C1.95118 7.65829 1.95118 7.34171 2.14645 7.14645L6.14645 3.14645C6.34171 2.95118 6.65829 2.95118 6.85355 3.14645Z" fill="currentColor"></path>
-                  </svg>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handlePageChange(Math.max(0, queryParams.page - 1))}
-                  disabled={!pagination || pagination.page === 0}
-                >
-                  <span className="sr-only">Go to previous page</span>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor"></path>
-                  </svg>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handlePageChange(Math.min(
-                    Math.ceil((pagination?.totalElements || 0) / queryParams.size) - 1,
-                    queryParams.page + 1
-                  ))}
-                  disabled={!pagination || queryParams.page >= Math.ceil(pagination.totalElements / pagination.size) - 1}
-                >
-                  <span className="sr-only">Go to next page</span>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6.1584 3.13508C6.35985 2.94621 6.67627 2.95642 6.86514 3.15788L10.6151 7.15788C10.7954 7.3502 10.7954 7.64949 10.6151 7.84182L6.86514 11.8418C6.67627 12.0433 6.35985 12.0535 6.1584 11.8646C5.95694 11.6757 5.94673 11.3593 6.1356 11.1579L9.565 7.49985L6.1356 3.84182C5.94673 3.64036 5.95694 3.32394 6.1584 3.13508Z" fill="currentColor"></path>
-                  </svg>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handlePageChange(Math.ceil((pagination?.totalElements || 0) / queryParams.size) - 1)}
-                  disabled={!pagination || queryParams.page >= Math.ceil(pagination.totalElements / pagination.size) - 1}
-                >
-                  <span className="sr-only">Go to last page</span>
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M2.14645 11.1464C1.95118 10.9512 1.95118 10.6346 2.14645 10.4393L5.29289 7.29289C5.68342 6.90237 6.31658 6.90237 6.70711 7.29289L9.85355 10.4393C10.0488 10.6346 10.0488 10.9512 9.85355 11.1464C9.65829 11.3417 9.34171 11.3417 9.14645 11.1464L6.70711 8.70711C6.31658 8.31658 5.68342 8.31658 5.29289 8.70711L2.85355 11.1464C2.65829 11.3417 2.34171 11.3417 2.14645 11.1464Z" fill="currentColor"></path>
-                  </svg>
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                Next
+              </Button>
             </div>
           </div>
         </CardContent>

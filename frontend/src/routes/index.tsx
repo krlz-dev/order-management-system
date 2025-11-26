@@ -1,10 +1,9 @@
+import { createFileRoute, useLoaderData } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppStore } from '@/store/useAppStore'
 import { apiService } from '@/services/api'
-import { useOrders } from '@/hooks/useOrders'
-import { useProducts } from '@/hooks/useProducts'
 import { 
   ShoppingCart, 
   DollarSign, 
@@ -15,7 +14,27 @@ import {
   RefreshCw
 } from 'lucide-react'
 
-export function Dashboard() {
+export const Route = createFileRoute('/')({
+  loader: ({ context }) => {
+    return Promise.all([
+      context.queryClient.fetchQuery({
+        queryKey: ['orders', { page: 0, size: 50, sortBy: 'createdAt', sortDir: 'desc' }],
+        queryFn: () => apiService.getOrders({ page: 0, size: 50, sortBy: 'createdAt', sortDir: 'desc' }),
+        staleTime: 0,
+      }),
+      context.queryClient.fetchQuery({
+        queryKey: ['products', { page: 0, size: 100, sortBy: 'name', sortDir: 'asc' }],
+        queryFn: () => apiService.getProducts({ page: 0, size: 100, sortBy: 'name', sortDir: 'asc' }),
+        staleTime: 0,
+      })
+    ])
+  },
+  component: Dashboard,
+})
+
+function Dashboard() {
+  const [ordersResponse, productsResponse] = useLoaderData({ from: '/' })
+  
   const { 
     pingResponse, 
     isLoading, 
@@ -25,55 +44,28 @@ export function Dashboard() {
     setError 
   } = useAppStore()
   
-  // Fetch recent orders and products for dashboard metrics
-  const { 
-    orders, 
-    pagination: ordersPagination, 
-    isLoading: ordersLoading,
-    refetch: refetchOrders 
-  } = useOrders({ 
-    page: 0, 
-    size: 50, // Get more data for analytics
-    sortBy: 'createdAt', 
-    sortDir: 'desc' 
-  })
-  
-  const { 
-    products, 
-    pagination: productsPagination, 
-    isLoading: productsLoading,
-    refetch: refetchProducts 
-  } = useProducts({ 
-    page: 0, 
-    size: 100, // Get all products for analytics
-    sortBy: 'name', 
-    sortDir: 'asc' 
-  })
+  const orders = ordersResponse?.data?.content || []
+  const ordersPagination = ordersResponse?.data
+  const products = productsResponse?.data?.content || []
+  const productsPagination = productsResponse?.data
 
-  // Calculate dashboard metrics
   const dashboardMetrics = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.totalPrice || 0), 0)
+    const totalRevenue = orders.reduce((sum: number, order: any) => sum + (order.totalPrice || 0), 0)
     const totalOrders = ordersPagination?.totalElements || orders.length
     const totalProducts = productsPagination?.totalElements || products.length
-    
-    // Low stock products (stock <= 10)
-    const lowStockProducts = products.filter(product => product.stock <= 10)
-    
-    // Recent orders (last 7 days)
+    const lowStockProducts = products.filter((product: any) => product.stock <= 10)
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-    const recentOrders = orders.filter(order => 
+
+    const recentOrders = orders.filter((order: any) => 
       new Date(order.createdAt) > sevenDaysAgo
     )
-    
-    // Average order value
+
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
-    
-    // Top selling products based on order items
     const productSales: { [key: string]: { name: string; quantity: number; revenue: number } } = {}
     
-    orders.forEach(order => {
-      order.orderItems?.forEach(item => {
+    orders.forEach((order: any) => {
+      order.orderItems?.forEach((item: any) => {
         const productName = item.product?.name || item.productName || 'Unknown'
         const quantity = item.quantity || 0
         const revenue = (item.unitPrice || 0) * quantity
@@ -136,27 +128,6 @@ export function Dashboard() {
     }
   }
 
-  const handleRefresh = async () => {
-    await Promise.all([
-      refetchOrders(),
-      refetchProducts()
-    ])
-  }
-
-
-  if (ordersLoading || productsLoading) {
-    return (
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading dashboard data...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
@@ -166,18 +137,16 @@ export function Dashboard() {
             <p className="text-gray-600">Real-time insights into your business performance and inventory.</p>
           </div>
           <Button
-            onClick={handleRefresh}
+            onClick={() => window.location.reload()}
             variant="outline"
-            disabled={ordersLoading || productsLoading}
             className="flex items-center gap-2"
           >
-            <RefreshCw className={`h-4 w-4 ${ordersLoading || productsLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>
       </div>
-      
-      {/* Key Metrics */}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="hover:shadow-lg transition-shadow">
           <CardContent className="p-6">
@@ -239,8 +208,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      
-      {/* Alert Section */}
+
       {dashboardMetrics.lowStockProducts.length > 0 && (
         <Card className="mb-8 border-orange-200 bg-orange-50">
           <CardHeader>
@@ -251,7 +219,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {dashboardMetrics.lowStockProducts.slice(0, 6).map(product => (
+              {dashboardMetrics.lowStockProducts.slice(0, 6).map((product: any) => (
                 <div key={product.id} className="bg-white p-3 rounded-lg border border-orange-200">
                   <div className="flex justify-between items-center">
                     <div>
@@ -270,7 +238,6 @@ export function Dashboard() {
       )}
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Recent Orders */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -280,7 +247,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardMetrics.recentOrders.slice(0, 5).map(order => (
+              {dashboardMetrics.recentOrders.slice(0, 5).map((order: any) => (
                 <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-sm">#{order.id.slice(-8)}</p>
@@ -298,8 +265,7 @@ export function Dashboard() {
             </div>
           </CardContent>
         </Card>
-        
-        {/* Top Selling Products */}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -332,8 +298,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      
-      {/* System Status */}
+
       <Card className="w-full max-w-lg mx-auto">
         <CardHeader>
           <CardTitle className="text-center flex items-center justify-center gap-2">
@@ -366,15 +331,11 @@ export function Dashboard() {
           
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             <div className="text-center">
-              <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${
-                !ordersLoading ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
+              <div className="w-3 h-3 rounded-full mx-auto mb-1 bg-green-500"></div>
               <p className="text-xs text-gray-600">Orders API</p>
             </div>
             <div className="text-center">
-              <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${
-                !productsLoading ? 'bg-green-500' : 'bg-yellow-500'
-              }`}></div>
+              <div className="w-3 h-3 rounded-full mx-auto mb-1 bg-green-500"></div>
               <p className="text-xs text-gray-600">Products API</p>
             </div>
           </div>
