@@ -3,6 +3,7 @@ import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
@@ -85,29 +86,17 @@ export function Inventory() {
       header: ({ column }) => {
         const isCurrentSort = queryParams.sortBy === 'name'
         const isDesc = queryParams.sortDir === 'desc'
-        console.log('🔍 Name header render:', { 
-          sortBy: queryParams.sortBy, 
-          sortDir: queryParams.sortDir, 
-          isCurrentSort, 
-          isDesc,
-          icon: isCurrentSort ? (isDesc ? 'DOWN' : 'UP') : 'BOTH'
-        })
         return (
           <Button
             variant="ghost"
             onClick={() => {
               const newSortDir = isCurrentSort ? (isDesc ? 'asc' : 'desc') : 'asc'
-              console.log('🔍 Name clicked:', { isCurrentSort, isDesc, newSortDir })
-              setQueryParams(prev => {
-                const newParams = {
-                  ...prev,
-                  page: 0,
-                  sortBy: 'name',
-                  sortDir: newSortDir
-                }
-                console.log('🔍 New queryParams:', newParams)
-                return newParams
-              })
+              setQueryParams(prev => ({
+                ...prev,
+                page: 0,
+                sortBy: 'name',
+                sortDir: newSortDir
+              }))
             }}
             className="p-0 h-auto font-semibold hover:bg-transparent"
           >
@@ -263,6 +252,7 @@ export function Inventory() {
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     state: {
       sorting: sortingState,
       columnFilters,
