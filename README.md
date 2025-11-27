@@ -104,13 +104,13 @@ sequenceDiagram
     B-->>F: Dashboard data
     F-->>U: Display metrics
     
-    Note over U,DB: 3. Product Management
-    U->>F: Add/Edit product
-    F->>B: POST/PUT /api/products
-    B->>DB: Save product data
-    DB-->>B: Product saved
-    B-->>F: Success response
-    F-->>U: Product updated
+    Note over U,DB: 3. Product Management (CRUD)
+    U->>F: View/Add/Edit/Delete product
+    F->>B: GET/POST/PUT/DELETE /api/products
+    B->>DB: Query/Save/Update/Remove product
+    DB-->>B: Product data/confirmation
+    B-->>F: Response with data/status
+    F-->>U: Product list/form/confirmation
     
     Note over U,DB: 4. Order Creation
     U->>F: Add to cart & checkout
@@ -141,18 +141,11 @@ sequenceDiagram
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript checks
 
-## 🤖 Notes on AI Usage
-
-This project was developed with the assistance of **Claude CLI**, an AI-powered coding assistant from Anthropic. The AI was used strategically to accelerate development and ensure high-quality code.
-
 **Areas of AI assistance:**
 - **Scaffolding:** Generating the initial project structure and build configurations.
 - **Boilerplate Code:** Creating boilerplate for REST controllers, services, and React components.
 - **Testing:** Generating unit test templates and sample data.
 - **Documentation:** Creating OpenAPI/Swagger documentation and providing suggestions for this README.
-
-**Human Intervention:**
-While the AI was a valuable tool, all architectural decisions, business logic, and security considerations were manually reviewed and implemented by the developer to ensure the quality and integrity of the final product.
 
 **Time Investment**: Approximately 6-8 hours of development time, with documentation handled on the final day.
 
@@ -182,35 +175,27 @@ The application is fully deployed on AWS with production-ready infrastructure:
 
 The deployment is fully automated and production-ready, demonstrating enterprise-level cloud infrastructure management.
 
-## 🔧 Areas for Improvement
+## 📝 Final Notes and Possible Improvements
 
-### Database Layer
-Currently using H2 as a static file database. For better scalability and production requirements, consider:
-- **PostgreSQL**: Top recommendation for robust ACID compliance and better concurrent handling
-- **MySQL/MariaDB**: Alternative relational database with excellent performance
-- **MongoDB**: For document-based storage if flexible schemas are needed
+### Better Database
+Currently using H2 as a static file database. A better database can handle and scale the persistency in better ways. Top suggestion would be **PostgreSQL** for robust production use.
 
-### Microservices Architecture
-To enhance scalability, consider separating concerns into dedicated services:
-- **Authentication Service**: Dedicated service for user authentication and authorization
-- **Order Service**: Isolated order processing and management
-- **Inventory Service**: Product and stock management
-- **Notification Service**: Email/SMS notifications for order updates
+### Microservice Architecture
+Separating the authentication and authorization as a service could enhance scalability as well. Other services like Order Service and Inventory Service would follow the same pattern.
 
-### Frontend Framework Considerations
-The current static SPA covers basic needs and is cost-effective for scaling, but there are modern alternatives:
-- **Next.js**: Full-stack React framework with SSR/SSG capabilities
-- **Astro**: Multi-framework approach with excellent performance
-- **React with batteries-included**: This project was built DIY-style with carefully chosen libraries
+### Frontend Approach
+The site is a static SPA which covers some basic needs - this is a personal choice for most projects, considering prices when scaling as well. But there are many frameworks that have all batteries included like **Next.js** and **Astro** with React to handle components. This was a bit more DIY production-ready with some of my favorite libraries.
 
 ### User Role Capabilities
-Current implementation has limited role capabilities for demonstration purposes:
-- **Customer View**: In production, customers would see "My Orders" instead of all orders
-- **Order Flow**: Could include receiving → shipping → on-the-way status tracking
-- **Inventory Platform**: If focused on inventory management, order entity represents transactions between customers and store
+The role capabilities of users are limited, just for visualization, since my goal was to show how these entities (orders and products) play an important role for a complete shopping system. In a real scenario, customers won't see a dashboard, inventory, or orders of other customers. This could have been made as "My Orders" for example, to use the data of orders as a way to control a flow like receiving → shipping → on the way etc. for customers who perform an order.
 
-This project was built as a demonstration of entity relationships (orders, products, customers) in a complete shopping system. All implementations are open to review, suggestions, and improvements.
+If the goal was to make a platform for inventory where we actually need to only add products, the entity order was assumed as a transaction between users, customers, and the store in order to purchase products.
+
+### Working with AI
+When working with AI, it's important to define boundaries to avoid extreme refactors. I worked with GEMINI CLI and CLAUDE console - most of the critical parts were made with Claude, and some quick checks, lint cleaning, and some configs for the deployment with Gemini. In the process I had several good feedback from both, but it's recommended to have some clear boundaries. An improvement can be in setting with more detail CLAUDE.md specifications and GEMINI.md specifications if working with any (Gemini was having the biggest hallucinations).
+
+This could definitely pass through some reviews and is always welcome to suggestions and re-implementations.
 
 ---
 
-💻 Developed with ❤️ by Carlos Rojas
+💻 Developed by Carlos Rojas
