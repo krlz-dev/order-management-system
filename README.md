@@ -10,6 +10,12 @@
 > **Technical Task**: A Senior Full-Stack Developer assessment for INFORM GmbH.
 > The goal was to build a complete order management system with a REST API backend and a React frontend, focusing on clean architecture, API design, and modern development practices.
 
+## 🚀 Live Demo
+
+**Frontend**: [https://d2jnxnj2sq3k0i.cloudfront.net](https://d2jnxnj2sq3k0i.cloudfront.net)  
+**Backend API**: [https://d1ao18yh5wdcuj.cloudfront.net](https://d1ao18yh5wdcuj.cloudfront.net)  
+**API Documentation**: [https://d1ao18yh5wdcuj.cloudfront.net/swagger-ui/index.html](https://d1ao18yh5wdcuj.cloudfront.net/swagger-ui/index.html)
+
 ## 🌟 Overview
 
 OrderFlow is a full-stack order management application built with a powerful combination of React and Java. It provides a comprehensive solution for managing products, orders, and customers, complete with a real-time dashboard and secure authentication.
@@ -93,7 +99,7 @@ sequenceDiagram
     Note over U,DB: Dashboard Data Loading
     U->>F: Navigate to Dashboard (/)
     F->>B: GET /api/products (fetch products)
-    F->>B: GET /api/orders (fetch recent orders)
+    F->>B: GET /api/orders (fetch recent orders)2
     par Parallel Data Fetching
         B->>DB: Query Products with Stock
         and B->>DB: Query Recent Orders
@@ -152,3 +158,29 @@ This project was developed with the assistance of **Claude CLI**, an AI-powered 
 While the AI was a valuable tool, all architectural decisions, business logic, and security considerations were manually reviewed and implemented by the developer to ensure the quality and integrity of the final product.
 
 **Time Investment**: Approximately 6-8 hours of development time, with documentation handled on the final day.
+
+## ☁️ Cloud Deployment
+
+The application is fully deployed on AWS with production-ready infrastructure:
+
+### Architecture
+- **Frontend**: React SPA hosted on S3 with CloudFront CDN
+- **Backend**: Spring Boot API running on ECS Fargate with Application Load Balancer
+- **Database**: H2 in-memory database (production ready with proper persistence layer)
+- **CDN**: CloudFront distributions for global content delivery and HTTPS
+
+### AWS Services Used
+- **Amazon S3**: Static website hosting for React frontend
+- **Amazon CloudFront**: Global CDN for both frontend and backend
+- **Amazon ECS**: Container orchestration with Fargate serverless compute
+- **Amazon ECR**: Docker image registry
+- **Application Load Balancer**: Load balancing and health checks
+- **AWS CLI**: Infrastructure deployment and management
+
+### Live URLs
+- **Frontend App**: [https://d2jnxnj2sq3k0i.cloudfront.net](https://d2jnxnj2sq3k0i.cloudfront.net)
+- **Backend API**: [https://d1ao18yh5wdcuj.cloudfront.net](https://d1ao18yh5wdcuj.cloudfront.net)
+- **API Docs**: [https://d1ao18yh5wdcuj.cloudfront.net/swagger-ui/index.html](https://d1ao18yh5wdcuj.cloudfront.net/swagger-ui/index.html)
+- **Health Check**: [https://d1ao18yh5wdcuj.cloudfront.net/actuator/health](https://d1ao18yh5wdcuj.cloudfront.net/actuator/health)
+
+The deployment is fully automated and production-ready, demonstrating enterprise-level cloud infrastructure management.

@@ -36,14 +36,6 @@ export function Header({ onMenuClick, title }: HeaderProps) {
   const handleOrderCreated = () => {
     // Navigate to Products page
     setCurrentPage('products')
-    
-    // Show success notification
-    addToast({
-      type: 'success',
-      title: 'Order Created Successfully!',
-      description: 'Your order has been placed and is being processed.',
-      duration: 4000
-    })
   }
 
   return (

@@ -1,0 +1,118 @@
+{
+  "CallerReference": "order-management-frontend-2025-11-27",
+  "Comment": "CloudFront distribution for Order Management Frontend",
+  "Enabled": true,
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "order-management-frontend-origin",
+        "DomainName": "order-management-frontend-static.s3.amazonaws.com",
+        "S3OriginConfig": {
+          "OriginAccessIdentity": ""
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "order-management-frontend-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "TrustedSigners": {
+      "Enabled": false,
+      "Quantity": 0
+    },
+    "ForwardedValues": {
+      "QueryString": false,
+      "Cookies": {
+        "Forward": "none"
+      }
+    },
+    "MinTTL": 0,
+    "DefaultTTL": 86400,
+    "MaxTTL": 31536000,
+    "Compress": true,
+    "AllowedMethods": {
+      "Quantity": 2,
+      "Items": ["GET", "HEAD"],
+      "CachedMethods": {
+        "Quantity": 2,
+        "Items": ["GET", "HEAD"]
+      }
+    }
+  },
+  "CacheBehaviors": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "PathPattern": "*.html",
+        "TargetOriginId": "order-management-frontend-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ForwardedValues": {
+          "QueryString": false,
+          "Cookies": {
+            "Forward": "none"
+          }
+        },
+        "MinTTL": 0,
+        "DefaultTTL": 300,
+        "MaxTTL": 300,
+        "Compress": true,
+        "AllowedMethods": {
+          "Quantity": 2,
+          "Items": ["GET", "HEAD"],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"]
+          }
+        }
+      },
+      {
+        "PathPattern": "/assets/*",
+        "TargetOriginId": "order-management-frontend-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ForwardedValues": {
+          "QueryString": false,
+          "Cookies": {
+            "Forward": "none"
+          }
+        },
+        "MinTTL": 0,
+        "DefaultTTL": 31536000,
+        "MaxTTL": 31536000,
+        "Compress": true,
+        "AllowedMethods": {
+          "Quantity": 2,
+          "Items": ["GET", "HEAD"],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"]
+          }
+        }
+      }
+    ]
+  },
+  "DefaultRootObject": "index.html",
+  "PriceClass": "PriceClass_100",
+  "ViewerCertificate": {
+    "CloudFrontDefaultCertificate": true
+  },
+  "CustomErrorResponses": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "ErrorCode": 404,
+        "ResponsePagePath": "/index.html",
+        "ResponseCode": "200",
+        "ErrorCachingMinTTL": 300
+      }
+    ]
+  }
+}

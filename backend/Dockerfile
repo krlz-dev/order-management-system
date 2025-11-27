@@ -1,5 +1,5 @@
 # Multi-stage build for Spring Boot app
-FROM openjdk:21-jdk-slim AS builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
@@ -21,23 +21,26 @@ COPY src src
 RUN ./mvnw clean package -DskipTests
 
 # Production stage
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --system spring && adduser --system spring --ingroup spring
+# Install curl for health check and create non-root user
+RUN apk add --no-cache curl && \
+    addgroup --system spring && adduser --system spring --ingroup spring && \
+    mkdir -p /app/data && \
+    chown -R spring:spring /app
 USER spring:spring
 
 # Copy the built jar from builder stage
 COPY --from=builder /app/target/order-management-backend-*.jar app.jar
 
-# Expose port 8080
-EXPOSE 8080
+# Expose port 9242
+EXPOSE 9242
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f http://localhost:9242/actuator/health || exit 1
 
 # Start the application
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

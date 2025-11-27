@@ -1,0 +1,137 @@
+{
+  "CallerReference": "order-management-backend-2025-11-27",
+  "Comment": "CloudFront distribution for Order Management Backend API",
+  "Enabled": true,
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "order-management-backend-origin",
+        "DomainName": "order-management-alb-1632050518.us-east-1.elb.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only",
+          "OriginSslProtocols": {
+            "Quantity": 1,
+            "Items": ["TLSv1.2"]
+          },
+          "OriginReadTimeout": 30,
+          "OriginKeepaliveTimeout": 5
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "order-management-backend-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "TrustedSigners": {
+      "Enabled": false,
+      "Quantity": 0
+    },
+    "ForwardedValues": {
+      "QueryString": true,
+      "Cookies": {
+        "Forward": "all"
+      },
+      "Headers": {
+        "Quantity": 6,
+        "Items": [
+          "Authorization",
+          "Content-Type",
+          "Accept",
+          "Origin",
+          "Access-Control-Request-Headers",
+          "Access-Control-Request-Method"
+        ]
+      }
+    },
+    "MinTTL": 0,
+    "DefaultTTL": 0,
+    "MaxTTL": 0,
+    "Compress": true,
+    "AllowedMethods": {
+      "Quantity": 7,
+      "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
+      "CachedMethods": {
+        "Quantity": 2,
+        "Items": ["GET", "HEAD"]
+      }
+    }
+  },
+  "CacheBehaviors": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "PathPattern": "/api/*",
+        "TargetOriginId": "order-management-backend-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ForwardedValues": {
+          "QueryString": true,
+          "Cookies": {
+            "Forward": "all"
+          },
+          "Headers": {
+            "Quantity": 6,
+            "Items": [
+              "Authorization",
+              "Content-Type",
+              "Accept",
+              "Origin",
+              "Access-Control-Request-Headers",
+              "Access-Control-Request-Method"
+            ]
+          }
+        },
+        "MinTTL": 0,
+        "DefaultTTL": 0,
+        "MaxTTL": 0,
+        "Compress": true,
+        "AllowedMethods": {
+          "Quantity": 7,
+          "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"]
+          }
+        }
+      },
+      {
+        "PathPattern": "/actuator/*",
+        "TargetOriginId": "order-management-backend-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "ForwardedValues": {
+          "QueryString": false,
+          "Cookies": {
+            "Forward": "none"
+          }
+        },
+        "MinTTL": 0,
+        "DefaultTTL": 300,
+        "MaxTTL": 86400,
+        "Compress": true,
+        "AllowedMethods": {
+          "Quantity": 3,
+          "Items": ["GET", "HEAD", "OPTIONS"],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"]
+          }
+        }
+      }
+    ]
+  },
+  "PriceClass": "PriceClass_100",
+  "ViewerCertificate": {
+    "CloudFrontDefaultCertificate": true
+  },
+  "WebACLId": ""
+}
