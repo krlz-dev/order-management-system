@@ -177,6 +177,9 @@ The deployment is fully automated and production-ready, demonstrating enterprise
 
 ## 📝 Final Notes and Possible Improvements
 
+### Requirements Fulfillment
+The inventory section interacts with CRUD for **Requirement 1 - Product Management**: Create, update, delete, and list products with attributes (id UUID, name String, price Number, stock Number). The section customer orders and products fulfills **Requirement 2 - Order Management**: An order contains one or more products (each with quantity), total price is calculated server-side, and lists orders with display details. For **Requirement 3 - Users (Simplified)**: The backend generates some users when starting, the details are in the login screen for demonstration purposes (no full user management required, using static demo users).
+
 ### Better Database
 Currently using H2 as a static file database. A better database can handle and scale the persistency in better ways. Top suggestion would be **PostgreSQL** for robust production use.
 
@@ -190,9 +193,6 @@ The site is a static SPA which covers some basic needs - this is a personal choi
 The role capabilities of users are limited, just for visualization, since my goal was to show how these entities (orders and products) play an important role for a complete shopping system. In a real scenario, customers won't see a dashboard, inventory, or orders of other customers. This could have been made as "My Orders" for example, to use the data of orders as a way to control a flow like receiving → shipping → on the way etc. for customers who perform an order.
 
 If the goal was to make a platform for inventory where we actually need to only add products, the entity order was assumed as a transaction between users, customers, and the store in order to purchase products.
-
-### Requirements Fulfillment
-The inventory section interacts with CRUD for **Requirement 1 - Product Management**: Create, update, delete, and list products with attributes (id UUID, name String, price Number, stock Number). The section customer orders and products fulfills **Requirement 2 - Order Management**: An order contains one or more products (each with quantity), total price is calculated server-side, and lists orders with display details. For **Requirement 3 - Users (Simplified)**: The backend generates some users when starting, the details are in the login screen for demonstration purposes (no full user management required, using static demo users).
 
 ### Dashboard Implementation
 The dashboard section was an extra, to summarize and try some data and filters. It wasn't part of the core requirements but adds value for demonstration purposes.
