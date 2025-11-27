@@ -83,49 +83,38 @@ The Spring Boot backend follows a classic layered architecture (Controller → S
 
 ```mermaid
 sequenceDiagram
-    participant U as User (Browser)
-    participant F as Frontend App<br/>(React/TypeScript)
-    participant B as Backend API<br/>(Spring Boot/Java)
-    participant DB as Database<br/>(H2 In-Memory)
+    participant U as User
+    participant F as Frontend
+    participant B as Backend
+    participant DB as Database
     
-    Note over U,DB: Authentication Flow
-    U->>F: Login Request
-    F->>B: POST /api/auth/login {email, password}
-    B->>DB: Validate User Credentials
-    DB-->>B: User Data
-    B-->>F: JWT Token + User Info
-    F-->>U: Dashboard Access
+    Note over U,DB: 1. Authentication
+    U->>F: Login
+    F->>B: POST /api/auth/login
+    B->>DB: Validate credentials
+    DB-->>B: User data
+    B-->>F: JWT token
+    F-->>U: Dashboard access
     
-    Note over U,DB: Dashboard Data Loading
-    U->>F: Navigate to Dashboard (/)
-    F->>B: GET /api/products (fetch products)
-    F->>B: GET /api/orders (fetch recent orders)2
-    par Parallel Data Fetching
-        B->>DB: Query Products with Stock
-        and B->>DB: Query Recent Orders
-    end
-    par Response Handling
-        DB-->>B: Products List
-        and DB-->>B: Orders Summary
-    end
-    B-->>F: Dashboard Data {products, orders, metrics}
-    F-->>U: Render Dashboard with Metrics
+    Note over U,DB: 2. Dashboard Loading
+    U->>F: Open dashboard
+    F->>B: GET /api/products & /api/orders
+    B->>DB: Query data
+    DB-->>B: Products & orders
+    B-->>F: Dashboard data
+    F-->>U: Display metrics
     
-    Note over U,DB: Shopping & Order Flow
-    U->>F: Browse Products & Add to Cart
-    Note over F: Client-side Cart State (Zustand)
-    U->>F: Proceed to Checkout
-    F->>B: POST /api/orders {items: [{productId, quantity}]}
-    B->>DB: Validate Stock Availability
-    alt Stock Available
-        B->>DB: Create Order + OrderItems
-        B->>DB: Update Product Stock
-        DB-->>B: Order Created
-        B-->>F: Order Success {orderId, total}
-        F-->>U: Order Confirmation
-    else Stock Insufficient
-        B-->>F: Stock Error Response
-        F-->>U: Error Message
+    Note over U,DB: 3. Order Creation
+    U->>F: Add to cart & checkout
+    F->>B: POST /api/orders
+    B->>DB: Validate stock
+    alt Stock available
+        B->>DB: Create order & update stock
+        B-->>F: Order success
+        F-->>U: Confirmation
+    else Insufficient stock
+        B-->>F: Error response
+        F-->>U: Error message
     end
 ```
 
@@ -184,3 +173,36 @@ The application is fully deployed on AWS with production-ready infrastructure:
 - **Health Check**: [https://d1ao18yh5wdcuj.cloudfront.net/actuator/health](https://d1ao18yh5wdcuj.cloudfront.net/actuator/health)
 
 The deployment is fully automated and production-ready, demonstrating enterprise-level cloud infrastructure management.
+
+## 🔧 Areas for Improvement
+
+### Database Layer
+Currently using H2 as a static file database. For better scalability and production requirements, consider:
+- **PostgreSQL**: Top recommendation for robust ACID compliance and better concurrent handling
+- **MySQL/MariaDB**: Alternative relational database with excellent performance
+- **MongoDB**: For document-based storage if flexible schemas are needed
+
+### Microservices Architecture
+To enhance scalability, consider separating concerns into dedicated services:
+- **Authentication Service**: Dedicated service for user authentication and authorization
+- **Order Service**: Isolated order processing and management
+- **Inventory Service**: Product and stock management
+- **Notification Service**: Email/SMS notifications for order updates
+
+### Frontend Framework Considerations
+The current static SPA covers basic needs and is cost-effective for scaling, but there are modern alternatives:
+- **Next.js**: Full-stack React framework with SSR/SSG capabilities
+- **Astro**: Multi-framework approach with excellent performance
+- **React with batteries-included**: This project was built DIY-style with carefully chosen libraries
+
+### User Role Capabilities
+Current implementation has limited role capabilities for demonstration purposes:
+- **Customer View**: In production, customers would see "My Orders" instead of all orders
+- **Order Flow**: Could include receiving → shipping → on-the-way status tracking
+- **Inventory Platform**: If focused on inventory management, order entity represents transactions between customers and store
+
+This project was built as a demonstration of entity relationships (orders, products, customers) in a complete shopping system. All implementations are open to review, suggestions, and improvements.
+
+---
+
+💻 Developed with ❤️ by Carlos Rojas
