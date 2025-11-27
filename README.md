@@ -104,7 +104,15 @@ sequenceDiagram
     B-->>F: Dashboard data
     F-->>U: Display metrics
     
-    Note over U,DB: 3. Order Creation
+    Note over U,DB: 3. Product Management
+    U->>F: Add/Edit product
+    F->>B: POST/PUT /api/products
+    B->>DB: Save product data
+    DB-->>B: Product saved
+    B-->>F: Success response
+    F-->>U: Product updated
+    
+    Note over U,DB: 4. Order Creation
     U->>F: Add to cart & checkout
     F->>B: POST /api/orders
     B->>DB: Validate stock
