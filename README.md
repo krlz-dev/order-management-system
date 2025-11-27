@@ -147,7 +147,7 @@ sequenceDiagram
 - **Testing:** Generating unit test templates and sample data.
 - **Documentation:** Creating OpenAPI/Swagger documentation and providing suggestions for this README.
 
-**Time Investment**: Approximately 6-8 hours of development time, with documentation handled on the final day.
+**Time Investment**: Approximately 6-8 hours of development time, with documentation handled on the final day. Some extra hours were added in documentation planning and refactors.
 
 ## ☁️ Cloud Deployment
 
@@ -190,6 +190,9 @@ The site is a static SPA which covers some basic needs - this is a personal choi
 The role capabilities of users are limited, just for visualization, since my goal was to show how these entities (orders and products) play an important role for a complete shopping system. In a real scenario, customers won't see a dashboard, inventory, or orders of other customers. This could have been made as "My Orders" for example, to use the data of orders as a way to control a flow like receiving → shipping → on the way etc. for customers who perform an order.
 
 If the goal was to make a platform for inventory where we actually need to only add products, the entity order was assumed as a transaction between users, customers, and the store in order to purchase products.
+
+### Infrastructure as Code
+AWS was set up just with AWS CLI. In a real scenario, it would be great to have it with CDK or some tool for infrastructure as code for better version control and repeatability.
 
 ### Working with AI
 When working with AI, it's important to define boundaries to avoid extreme refactors. I worked with GEMINI CLI and CLAUDE console - most of the critical parts were made with Claude, and some quick checks, lint cleaning, and some configs for the deployment with Gemini. In the process I had several good feedback from both, but it's recommended to have some clear boundaries. An improvement can be in setting with more detail CLAUDE.md specifications and GEMINI.md specifications if working with any (Gemini was having the biggest hallucinations).
