@@ -1,5 +1,88 @@
 # OrderFlow - Order Management System
 
+> **Technical Task**: INFORM GmbH Senior Full-Stack Developer assessment  
+> Build a complete order management system with REST API backend and React frontend  
+> Focus: Clean architecture, API design, and modern development practices
+
+## 🔄 System Flow Diagram
+
+```mermaid
+sequenceDiagram
+    participant U as User (Browser)
+    participant F as Frontend App<br/>(React/TypeScript)
+    participant B as Backend API<br/>(Spring Boot/Java)
+    participant DB as Database<br/>(H2 In-Memory)
+    
+    Note over U,DB: Authentication Flow
+    U->>F: Login Request
+    F->>B: POST /api/auth/login {email, password}
+    B->>DB: Validate User Credentials
+    DB-->>B: User Data
+    B-->>F: JWT Token + User Info
+    F-->>U: Dashboard Access
+    
+    Note over U,DB: Dashboard Data Loading
+    U->>F: Navigate to Dashboard (/)
+    F->>B: GET /api/products (fetch products)
+    F->>B: GET /api/orders (fetch recent orders)
+    par Parallel Data Fetching
+        B->>DB: Query Products with Stock
+        and B->>DB: Query Recent Orders
+    end
+    par Response Handling
+        DB-->>B: Products List
+        and DB-->>B: Orders Summary
+    end
+    B-->>F: Dashboard Data {products, orders, metrics}
+    F-->>U: Render Dashboard with Metrics
+    
+    Note over U,DB: Product Management Flow
+    U->>F: Navigate to Products (/products)
+    F->>B: GET /api/products (with filters)
+    B->>DB: Query Products (sorted, filtered)
+    DB-->>B: Products List
+    B-->>F: Products Data
+    F-->>U: Display Product Table
+    
+    U->>F: Create/Edit Product
+    F->>B: POST/PUT /api/products {name, price, stock}
+    B->>DB: Save Product Entity
+    DB-->>B: Saved Product
+    B-->>F: Success Response
+    F-->>U: Updated Product List
+    
+    Note over U,DB: Shopping & Order Flow
+    U->>F: Browse Products & Add to Cart
+    Note over F: Client-side Cart State (Zustand)
+    U->>F: Proceed to Checkout
+    F->>B: POST /api/orders {items: [{productId, quantity}]}
+    B->>DB: Validate Stock Availability
+    alt Stock Available
+        B->>DB: Create Order + OrderItems
+        B->>DB: Update Product Stock
+        DB-->>B: Order Created
+        B-->>F: Order Success {orderId, total}
+        F-->>U: Order Confirmation
+    else Stock Insufficient
+        B-->>F: Stock Error Response
+        F-->>U: Error Message
+    end
+    
+    Note over U,DB: Inventory Management
+    U->>F: Navigate to Inventory (/inventory)
+    F->>B: GET /api/products?stockLow=true
+    B->>DB: Query Low Stock Products
+    DB-->>B: Low Stock Items
+    B-->>F: Inventory Alerts
+    F-->>U: Stock Management View
+```
+
+**Key Interactions:**
+- **Route-based Loading**: TanStack Router loaders fetch data before page render
+- **Server-side Calculations**: Order totals and stock validation handled in backend  
+- **Real-time Updates**: Optimistic UI updates with background synchronization
+- **JWT Authentication**: Stateless authentication for API security
+
 Full-stack order management application built with React and Java.
 
 - **Frontend**: Route-based data fetching with TanStack Router loaders
