@@ -200,6 +200,9 @@ The dashboard section was an extra, to summarize and try some data and filters. 
 ### Infrastructure as Code
 AWS was set up just with AWS CLI. In a real scenario, it would be great to have it with CDK or some tool for infrastructure as code for better version control and repeatability.
 
+### CI/CD Pipeline
+GitHub Actions are running tests and building the app, but they are not currently performing a complete CI. It can be improved with a complete CI pipeline for a production-ready solution.
+
 ### Working with AI
 When working with AI, it's important to define boundaries to avoid extreme refactors. I worked with GEMINI CLI and CLAUDE console - most of the critical parts were made with Claude, and some quick checks, lint cleaning, and some configs for the deployment with Gemini. In the process I had several good feedback from both, but it's recommended to have some clear boundaries. An improvement can be in setting with more detail CLAUDE.md specifications and GEMINI.md specifications if working with any (Gemini was having the biggest hallucinations).
 
