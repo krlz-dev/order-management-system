@@ -191,6 +191,9 @@ The role capabilities of users are limited, just for visualization, since my goa
 
 If the goal was to make a platform for inventory where we actually need to only add products, the entity order was assumed as a transaction between users, customers, and the store in order to purchase products.
 
+### Dashboard Implementation
+The dashboard section was an extra, to summarize and try some data and filters. It wasn't part of the core requirements but adds value for demonstration purposes.
+
 ### Infrastructure as Code
 AWS was set up just with AWS CLI. In a real scenario, it would be great to have it with CDK or some tool for infrastructure as code for better version control and repeatability.
 
